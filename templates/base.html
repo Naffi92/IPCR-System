@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IPCR System{% endblock %} — MSU-Maguindanao</title>
+</head>
+<body>
+    <header>
+        <h1>IPCR Management System</h1>
+        <p>Mindanao State University – Maguindanao</p>
+        {% if user.is_authenticated %}
+            <p>Logged in as: {{ user.username }} |
+                <a href="{% url 'account_logout' %}">Logout</a>
+            </p>
+        {% endif %}
+    </header>
+
+    <hr>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <hr>
+
+    <footer>
+        <p>&copy; 2026 MSU-Maguindanao HRMO</p>
+    </footer>
+</body>
+</html>
