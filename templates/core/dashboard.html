@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}HRMO Dashboard{% endblock %}
+
+{% block content %}
+<h2>Submission Monitoring Dashboard</h2>
+
+{% if not active_period %}
+    <div class="card">
+        <p><strong>No active rating period.</strong> Set one in
+            <a href="/admin/core/ratingperiod/">Admin → Rating Periods</a>
+            and mark it as active.</p>
+    </div>
+{% else %}
+    <div class="card">
+        <p><strong>Active Rating Period:</strong> {{ active_period.name }}
+            ({{ active_period.start_date }} — {{ active_period.end_date }})</p>
+        <p><strong>Target Setting Deadline:</strong> {{ active_period.target_setting_deadline }} ·
+           <strong>Appraisal Deadline:</strong> {{ active_period.appraisal_deadline }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Overall Compliance</h3>
+        <p style="font-size: 28px; margin: 6px 0;">
+            <strong>{{ overall_compliance }}%</strong>
+        </p>
+        <p style="color: #666;">
+            {{ totals.submitted|add:totals.approved }} of {{ totals.employees }} employees
+            have submitted or had their IPCR approved.
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>Per Division Breakdown</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Division</th>
+                    <th>Total</th>
+                    <th>Draft</th>
+                    <th>Submitted</th>
+                    <th>Approved</th>
+                    <th>Returned</th>
+                    <th>No IPCR</th>
+                    <th>Compliance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in division_stats %}
+                <tr>
+                    <td>{{ stat.division.code }} — {{ stat.division.name }}</td>
+                    <td>{{ stat.total }}</td>
+                    <td>{{ stat.draft }}</td>
+                    <td>{{ stat.submitted }}</td>
+                    <td>{{ stat.approved }}</td>
+                    <td>{{ stat.returned }}</td>
+                    <td>{{ stat.no_ipcr }}</td>
+                    <td>
+                        {% if stat.compliance_rate >= 90 %}
+                            <span class="badge badge-green">{{ stat.compliance_rate }}%</span>
+                        {% elif stat.compliance_rate >= 50 %}
+                            <span class="badge badge-yellow">{{ stat.compliance_rate }}%</span>
+                        {% elif stat.total > 0 %}
+                            <span class="badge badge-red">{{ stat.compliance_rate }}%</span>
+                        {% else %}
+                            <span class="badge badge-gray">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" style="text-align:center; color:#666;">
+                    No divisions created yet.
+                </td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="font-weight:bold; background:#f0f2f5;">
+                    <td>TOTAL</td>
+                    <td>{{ totals.employees }}</td>
+                    <td>{{ totals.draft }}</td>
+                    <td>{{ totals.submitted }}</td>
+                    <td>{{ totals.approved }}</td>
+                    <td>{{ totals.returned }}</td>
+                    <td>{{ totals.no_ipcr }}</td>
+                    <td>{{ overall_compliance }}%</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}
