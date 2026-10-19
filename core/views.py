@@ -197,3 +197,109 @@ def delete_target(request, target_id):
         return redirect('core:my_ipcr')
 
     return render(request, 'core/target_confirm_delete.html', {'target': target})
+
+@login_required
+def submit_ipcr(request):
+    """Ratee view: submit the draft IPCR for approval."""
+    try:
+        employee = request.user.employee
+    except Employee.DoesNotExist:
+        return redirect('core:home')
+
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    if not active_period:
+        return redirect('core:my_ipcr')
+
+    ipcr = get_object_or_404(IPCR, rating_period=active_period, employee=employee)
+
+    if request.method == 'POST':
+        # Validation: Cannot submit if total weight != 100
+        total_weight = sum(t.weight for t in ipcr.targets.all())
+        if total_weight != 100:
+            messages.error(request, f"Cannot submit. Total weight is {total_weight}%. It must be exactly 100%.")
+            return redirect('core:my_ipcr')
+        
+        if not ipcr.targets.exists():
+            messages.error(request, "Cannot submit. You have no targets.")
+            return redirect('core:my_ipcr')
+
+        # Validation: Must have a supervisor assigned
+        if not employee.supervisor:
+            messages.error(request, "Cannot submit. You do not have a supervisor assigned. Please contact HRMO.")
+            return redirect('core:my_ipcr')
+
+        # Perform submission
+        ipcr.status = 'submitted'
+        ipcr.main_appraiser = employee.supervisor
+        from django.utils import timezone
+        ipcr.submitted_at = timezone.now()
+        ipcr.save()
+        
+        messages.success(request, "IPCR submitted successfully to your supervisor.")
+        return redirect('core:my_ipcr')
+
+    return redirect('core:my_ipcr')
+
+
+@role_required('Rater', 'Division Head')
+def supervisor_dashboard(request):
+    """Rater view: list of subordinates' IPCRs pending review."""
+    try:
+        employee = request.user.employee
+    except Employee.DoesNotExist:
+        messages.error(request, "Your account is not linked to an Employee profile.")
+        return redirect('core:home')
+
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    
+    # Get subordinates
+    subordinates = Employee.objects.filter(supervisor=employee)
+    
+    # Get their IPCRs for the active period
+    ipcrs = IPCR.objects.filter(
+        rating_period=active_period,
+        employee__in=subordinates
+    ).order_by('status', 'employee__user__last_name')
+
+    context = {
+        'active_period': active_period,
+        'ipcrs': ipcrs,
+    }
+    return render(request, 'core/supervisor_dashboard.html', context)
+
+
+@role_required('Rater', 'Division Head')
+def review_ipcr(request, ipcr_id):
+    """Rater view: review an IPCR and approve/return it."""
+    try:
+        supervisor = request.user.employee
+    except Employee.DoesNotExist:
+        return redirect('core:home')
+
+    ipcr = get_object_or_404(IPCR, id=ipcr_id, main_appraiser=supervisor)
+    targets = ipcr.targets.all()
+    total_weight = sum(t.weight for t in targets)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'approve':
+            ipcr.status = 'approved'
+            from django.utils import timezone
+            ipcr.approved_at = timezone.now()
+            ipcr.save()
+            messages.success(request, f"IPCR for {ipcr.employee.user.get_full_name() or ipcr.employee.user.username} has been approved.")
+        
+        elif action == 'return':
+            ipcr.status = 'returned'
+            ipcr.save()
+            messages.warning(request, f"IPCR returned to {ipcr.employee.user.get_full_name() or ipcr.employee.user.username} for revision.")
+            
+        return redirect('core:supervisor_dashboard')
+
+    context = {
+        'ipcr': ipcr,
+        'targets': targets,
+        'total_weight': total_weight,
+    }
+    return render(request, 'core/review_ipcr.html', context)

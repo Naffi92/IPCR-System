@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Supervisor Dashboard{% endblock %}
+
+{% block content %}
+<h2>Supervisor Dashboard - {{ active_period.name }}</h2>
+
+<div class="card">
+    <h3>Subordinates' IPCRs</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ipcr in ipcrs %}
+            <tr>
+                <td>
+                    <strong>{{ ipcr.employee.user.get_full_name|default:ipcr.employee.user.username }}</strong><br>
+                    <small>{{ ipcr.employee.employee_id }}</small>
+                </td>
+                <td>
+                    {% if ipcr.status == 'draft' %}<span class="badge badge-gray">Draft (Not yet submitted)</span>
+                    {% elif ipcr.status == 'submitted' %}<span class="badge badge-yellow">Pending Review</span>
+                    {% elif ipcr.status == 'approved' %}<span class="badge badge-green">Approved</span>
+                    {% elif ipcr.status == 'returned' %}<span class="badge badge-red">Returned for Revision</span>
+                    {% endif %}
+                </td>
+                <td>{{ ipcr.submitted_at|date:"M d, Y H:i"|default:"—" }}</td>
+                <td>
+                    {% if ipcr.status == 'submitted' %}
+                        <a href="{% url 'core:review_ipcr' ipcr.id %}" style="background: #003366; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 13px;">Review</a>
+                    {% else %}
+                        <a href="{% url 'core:review_ipcr' ipcr.id %}" style="color: #003366;">View</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 20px;">No subordinates found or no IPCRs created yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

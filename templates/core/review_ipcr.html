@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Review IPCR{% endblock %}
+
+{% block content %}
+<h2>Review IPCR: {{ ipcr.employee.user.get_full_name|default:ipcr.employee.user.username }}</h2>
+
+<div class="card">
+    <p><strong>Status:</strong> 
+        {% if ipcr.status == 'submitted' %}<span class="badge badge-yellow">Pending Review</span>
+        {% elif ipcr.status == 'approved' %}<span class="badge badge-green">Approved</span>
+        {% elif ipcr.status == 'returned' %}<span class="badge badge-red">Returned</span>
+        {% endif %}
+    </p>
+    <p><strong>Total Weight:</strong> {{ total_weight }}%</p>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Output / Target</th>
+                <th>Weight</th>
+                <th>Q/E/T Targets</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for target in targets %}
+            <tr>
+                <td>
+                    <strong>{{ target.output }}</strong><br>
+                    {% if not target.dpcr_target %}<small style="color: red;">⚠ Orphan</small>{% endif %}
+                </td>
+                <td>{{ target.weight }}%</td>
+                <td>
+                    <div style="font-size: 12px;">
+                        <strong>Q:</strong> {{ target.quality_target|default:"—" }}<br>
+                        <strong>E:</strong> {{ target.efficiency_target|default:"—" }}<br>
+                        <strong>T:</strong> {{ target.timeliness_target|default:"—" }}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if ipcr.status == 'submitted' %}
+<div class="card" style="background: #f8f9fa;">
+    <h3>Take Action</h3>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" name="action" value="approve" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">Approve IPCR</button>
+        
+        <button type="submit" name="action" value="return" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-left: 10px;" onclick="return confirm('Return this IPCR to the employee for revision?');">Return for Revision</button>
+    </form>
+</div>
+{% endif %}
+
+<div style="margin-top: 20px;">
+    <a href="{% url 'core:supervisor_dashboard' %}">&larr; Back to Dashboard</a>
+</div>
+{% endblock %}

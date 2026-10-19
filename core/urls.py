@@ -12,4 +12,11 @@ urlpatterns = [
     path('my-ipcr/add-target/', views.add_target, name='add_target'),
     path('my-ipcr/edit-target/<int:target_id>/', views.edit_target, name='edit_target'),
     path('my-ipcr/delete-target/<int:target_id>/', views.delete_target, name='delete_target'),
+
+    # Ratee Submit
+    path('my-ipcr/submit/', views.submit_ipcr, name='submit_ipcr'),
+    
+    # Rater URLs
+    path('supervisor/', views.supervisor_dashboard, name='supervisor_dashboard'),
+    path('supervisor/review/<int:ipcr_id>/', views.review_ipcr, name='review_ipcr'),
 ]
