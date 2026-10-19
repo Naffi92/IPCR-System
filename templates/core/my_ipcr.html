@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}My IPCR{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>My IPCR - {{ active_period.name }}</h2>
+    {% if ipcr.status == 'draft' %}
+        <a href="{% url 'core:add_target' %}" style="background: #003366; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">+ Add Target</a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <p><strong>Status:</strong> 
+        {% if ipcr.status == 'draft' %}<span class="badge badge-gray">Draft</span>
+        {% elif ipcr.status == 'submitted' %}<span class="badge badge-yellow">Submitted</span>
+        {% elif ipcr.status == 'approved' %}<span class="badge badge-green">Approved</span>
+        {% elif ipcr.status == 'returned' %}<span class="badge badge-red">Returned for Revision</span>
+        {% endif %}
+    </p>
+    <p><strong>Total Weight:</strong> {{ total_weight }}% / 100%</p>
+    {% if total_weight > 100 %}
+        <p style="color: red; font-weight: bold;">Warning: Total weight exceeds 100%. Please adjust your targets.</p>
+    {% elif total_weight < 100 and targets %}
+        <p style="color: #856404; font-weight: bold;">Note: Total weight is under 100%.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Output / Target</th>
+                <th>Weight</th>
+                <th>Q/E/T Targets</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for target in targets %}
+            <tr>
+                <td>
+                    <strong>{{ target.output }}</strong><br>
+                    {% if target.dpcr_target %}
+                        <small style="color: #666;">Linked to DPCR: {{ target.dpcr_target.output }}</small>
+                    {% else %}
+                        <small style="color: red;">⚠ Orphan (Not linked to DPCR)</small>
+                    {% endif %}
+                </td>
+                <td>{{ target.weight }}%</td>
+                <td>
+                    <div style="font-size: 12px;">
+                        <strong>Q:</strong> {{ target.quality_target|default:"—" }}<br>
+                        <strong>E:</strong> {{ target.efficiency_target|default:"—" }}<br>
+                        <strong>T:</strong> {{ target.timeliness_target|default:"—" }}
+                    </div>
+                </td>
+                <td>
+                    {% if ipcr.status == 'draft' %}
+                        <a href="{% url 'core:edit_target' target.id %}" style="color: #003366; margin-right: 10px;">Edit</a>
+                        <a href="{% url 'core:delete_target' target.id %}" style="color: red;">Delete</a>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 20px; color: #666;">
+                    No targets added yet. Click "+ Add Target" to begin.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

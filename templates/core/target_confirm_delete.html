@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Delete Target{% endblock %}
+
+{% block content %}
+<h2>Delete Target</h2>
+<div class="card">
+    <p>Are you sure you want to delete the target: <strong>"{{ target.output }}"</strong>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" style="background: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">Yes, Delete</button>
+        <a href="{% url 'core:my_ipcr' %}" style="margin-left: 10px; color: #666; text-decoration: none;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

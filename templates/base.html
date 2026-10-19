@@ -91,6 +91,7 @@
     {% if user.is_authenticated %}
     <nav>
         <a href="{% url 'core:home' %}">Home</a>
+        <a href="{% url 'core:my_ipcr' %}">My IPCR</a>
         {% if user.is_superuser or 'HRMO' in user_groups %}
             <a href="{% url 'core:dashboard' %}">HRMO Dashboard</a>
         {% endif %}
