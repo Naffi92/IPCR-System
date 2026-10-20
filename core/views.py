@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import IPCRTargetForm
 from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget
+from .forms import IPCRTargetForm, AppraisalFormSet
 
 @login_required
 def home(request):
@@ -303,3 +304,37 @@ def review_ipcr(request, ipcr_id):
         'total_weight': total_weight,
     }
     return render(request, 'core/review_ipcr.html', context)
+
+@role_required('Rater', 'Division Head')
+def appraise_ipcr(request, ipcr_id):
+    """Rater view: input actuals and 1-5 Q/E/T ratings."""
+    try:
+        supervisor = request.user.employee
+    except Employee.DoesNotExist:
+        return redirect('core:home')
+
+    ipcr = get_object_or_404(IPCR, id=ipcr_id, main_appraiser=supervisor)
+    
+    # Only allow appraisal if targets are approved
+    if ipcr.status not in ['approved', 'appraised']:
+        messages.error(request, "You can only appraise an IPCR that has been approved.")
+        return redirect('core:supervisor_dashboard')
+
+    if request.method == 'POST':
+        formset = AppraisalFormSet(request.POST, queryset=ipcr.targets.all())
+        if formset.is_valid():
+            formset.save()
+            
+            # Mark IPCR as appraised
+            ipcr.status = 'appraised'
+            ipcr.save()
+            messages.success(request, "Appraisal ratings saved successfully.")
+            return redirect('core:supervisor_dashboard')
+    else:
+        formset = AppraisalFormSet(queryset=ipcr.targets.all())
+
+    context = {
+        'ipcr': ipcr,
+        'formset': formset,
+    }
+    return render(request, 'core/appraise_ipcr.html', context)

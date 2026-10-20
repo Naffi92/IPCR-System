@@ -155,6 +155,7 @@ class IPCR(models.Model):
         ('submitted', 'Submitted'),
         ('approved', 'Approved'),
         ('returned', 'Returned for Revision'),
+        ('appraised', 'Appraised (Scored)'),
     ]
 
     rating_period = models.ForeignKey(

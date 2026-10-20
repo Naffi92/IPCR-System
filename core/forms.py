@@ -1,5 +1,6 @@
 from django import forms
 from .models import IPCRTarget, DPCRTarget
+from django.forms import modelformset_factory
 
 class IPCRTargetForm(forms.ModelForm):
     class Meta:
@@ -36,3 +37,20 @@ class IPCRTargetForm(forms.ModelForm):
         # Make dpcr_target optional for now (since OPCR/DPCR creation isn't built yet)
         self.fields['dpcr_target'].required = False
         self.fields['dpcr_target'].empty_label = "-- Not linked to DPCR (Orphan) --"
+
+AppraisalFormSet = modelformset_factory(
+    IPCRTarget,
+    fields=[
+        'quality_actual', 'efficiency_actual', 'timeliness_actual', 
+        'quality_rating', 'efficiency_rating', 'timeliness_rating'
+    ],
+    extra=0,
+    widgets={
+        'quality_actual': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        'efficiency_actual': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        'timeliness_actual': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        'quality_rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
+        'efficiency_rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
+        'timeliness_rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
+    }
+)

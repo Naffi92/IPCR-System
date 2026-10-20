@@ -37,6 +37,17 @@
                         <a href="{% url 'core:review_ipcr' ipcr.id %}" style="color: #003366;">View</a>
                     {% endif %}
                 </td>
+                <td>
+                    {% if ipcr.status == 'submitted' %}
+                        <a href="{% url 'core:review_ipcr' ipcr.id %}" style="background: #003366; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 13px;">Review Targets</a>
+                    {% elif ipcr.status == 'approved' %}
+                        <a href="{% url 'core:appraise_ipcr' ipcr.id %}" style="background: #28a745; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 13px;">Appraise (Score)</a>
+                    {% elif ipcr.status == 'appraised' %}
+                        <a href="{% url 'core:appraise_ipcr' ipcr.id %}" style="color: #003366;">Edit Score</a>
+                    {% else %}
+                        <a href="{% url 'core:review_ipcr' ipcr.id %}" style="color: #003366;">View</a>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr>

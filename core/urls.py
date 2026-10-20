@@ -19,4 +19,6 @@ urlpatterns = [
     # Rater URLs
     path('supervisor/', views.supervisor_dashboard, name='supervisor_dashboard'),
     path('supervisor/review/<int:ipcr_id>/', views.review_ipcr, name='review_ipcr'),
+
+    path('supervisor/appraise/<int:ipcr_id>/', views.appraise_ipcr, name='appraise_ipcr'),
 ]
