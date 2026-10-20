@@ -59,10 +59,14 @@ class IPCRTargetInline(admin.TabularInline):
 
 @admin.register(IPCR)
 class IPCRAdmin(admin.ModelAdmin):
-    list_display = ('employee', 'rating_period', 'status', 'main_appraiser', 'final_rating')
+    list_display = ('employee', 'rating_period', 'status', 'main_appraiser', 'display_final_rating')
     list_filter = ('status', 'rating_period')
     search_fields = ('employee__employee_id', 'employee__user__username')
     inlines = [IPCRTargetInline]
+
+    @admin.display(description='Final Rating')
+    def display_final_rating(self, obj):
+        return obj.final_rating
 
 
 @admin.register(BehavioralDimension)

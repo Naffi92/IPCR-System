@@ -30,6 +30,11 @@
     {% elif total_weight < 100 and targets %}
         <p style="color: #856404; font-weight: bold;">Note: Total weight is under 100%.</p>
     {% endif %}
+    {% if ipcr.status == 'appraised' or ipcr.status == 'approved' %}
+        <p style="font-size: 20px; color: #003366;">
+            <strong>Final Rating:</strong> {{ ipcr.final_rating|default:"Pending" }} / 5.00
+        </p>
+    {% endif %}
 </div>
 
 <div class="card">

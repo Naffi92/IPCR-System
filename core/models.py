@@ -186,10 +186,10 @@ class IPCR(models.Model):
         targets = self.targets.all()
         if not targets:
             return None
-        total_weight = sum(t.weight for t in targets)
+        total_weight = sum(float(t.weight) for t in targets) # Cast to float
         if total_weight == 0:
             return None
-        weighted_sum = sum((t.average_rating or 0) * t.weight for t in targets)
+        weighted_sum = sum((t.average_rating or 0) * float(t.weight) for t in targets) # Cast to float
         return round(weighted_sum / total_weight, 2)
 
 

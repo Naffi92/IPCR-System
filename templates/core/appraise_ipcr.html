@@ -7,6 +7,11 @@
 <div class="card">
     <p><strong>Period:</strong> {{ ipcr.rating_period.name }}</p>
     <p><strong>Status:</strong> <span class="badge badge-green">{{ ipcr.get_status_display }}</span></p>
+    {% if ipcr.final_rating %}
+        <p style="font-size: 20px; color: #003366;">
+            <strong>Computed Final Rating:</strong> {{ ipcr.final_rating }} / 5.00
+        </p>
+    {% endif %}
 </div>
 
 <div class="card">

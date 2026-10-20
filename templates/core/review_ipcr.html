@@ -12,6 +12,11 @@
         {% endif %}
     </p>
     <p><strong>Total Weight:</strong> {{ total_weight }}%</p>
+    {% if ipcr.final_rating %}
+        <p style="font-size: 20px; color: #003366;">
+            <strong>Computed Final Rating:</strong> {{ ipcr.final_rating }} / 5.00
+        </p>
+    {% endif %}
 </div>
 
 <div class="card">
