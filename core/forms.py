@@ -1,6 +1,7 @@
 from django import forms
-from .models import IPCRTarget, DPCRTarget
 from django.forms import modelformset_factory
+from .models import IPCRTarget, DPCRTarget, BehavioralRating, BehavioralDimension, CriticalIncident
+
 
 class IPCRTargetForm(forms.ModelForm):
     class Meta:
@@ -26,7 +27,6 @@ class IPCRTargetForm(forms.ModelForm):
         division = kwargs.pop('division', None)
         super().__init__(*args, **kwargs)
         
-        # Only show DPCR targets that belong to the user's division
         if division:
             self.fields['dpcr_target'].queryset = DPCRTarget.objects.filter(
                 dpcr__division=division
@@ -34,9 +34,9 @@ class IPCRTargetForm(forms.ModelForm):
         else:
             self.fields['dpcr_target'].queryset = DPCRTarget.objects.none()
             
-        # Make dpcr_target optional for now (since OPCR/DPCR creation isn't built yet)
         self.fields['dpcr_target'].required = False
         self.fields['dpcr_target'].empty_label = "-- Not linked to DPCR (Orphan) --"
+
 
 AppraisalFormSet = modelformset_factory(
     IPCRTarget,
@@ -54,3 +54,32 @@ AppraisalFormSet = modelformset_factory(
         'timeliness_rating': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5}),
     }
 )
+
+class BehavioralRatingForm(forms.ModelForm):
+    rating = forms.IntegerField(
+        min_value=1, max_value=5, required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5})
+    )
+    
+    class Meta:
+        model = BehavioralRating
+        fields = ['rating', 'remarks']
+        widgets = {
+            'remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 1}),
+        }
+
+BehavioralRatingFormSet = modelformset_factory(
+    BehavioralRating,
+    form=BehavioralRatingForm,
+    extra=0
+)
+
+class CriticalIncidentForm(forms.ModelForm):
+    class Meta:
+        model = CriticalIncident
+        fields = ['incident_type', 'date_occurred', 'description']
+        widgets = {
+            'incident_type': forms.Select(attrs={'class': 'form-control'}),
+            'date_occurred': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }

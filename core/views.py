@@ -8,6 +8,8 @@ from django.contrib import messages
 from .forms import IPCRTargetForm
 from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget
 from .forms import IPCRTargetForm, AppraisalFormSet
+from .forms import IPCRTargetForm, AppraisalFormSet, BehavioralRatingFormSet, CriticalIncidentForm
+from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget, BehavioralDimension, BehavioralRating, CriticalIncident
 
 @login_required
 def home(request):
@@ -307,7 +309,7 @@ def review_ipcr(request, ipcr_id):
 
 @role_required('Rater', 'Division Head')
 def appraise_ipcr(request, ipcr_id):
-    """Rater view: input actuals and 1-5 Q/E/T ratings."""
+    """Rater view: input actuals, 1-5 Q/E/T ratings, and BDF ratings."""
     try:
         supervisor = request.user.employee
     except Employee.DoesNotExist:
@@ -315,26 +317,34 @@ def appraise_ipcr(request, ipcr_id):
 
     ipcr = get_object_or_404(IPCR, id=ipcr_id, main_appraiser=supervisor)
     
-    # Only allow appraisal if targets are approved
     if ipcr.status not in ['approved', 'appraised']:
         messages.error(request, "You can only appraise an IPCR that has been approved.")
         return redirect('core:supervisor_dashboard')
 
+    # Ensure BehavioralRating objects exist for all active dimensions
+    active_dimensions = BehavioralDimension.objects.filter(is_active=True)
+    for dim in active_dimensions:
+        BehavioralRating.objects.get_or_create(ipcr=ipcr, dimension=dim)
+
     if request.method == 'POST':
-        formset = AppraisalFormSet(request.POST, queryset=ipcr.targets.all())
-        if formset.is_valid():
-            formset.save()
+        target_formset = AppraisalFormSet(request.POST, queryset=ipcr.targets.all())
+        bdf_formset = BehavioralRatingFormSet(request.POST, queryset=ipcr.behavioral_ratings.all())
+        
+        if target_formset.is_valid() and bdf_formset.is_valid():
+            target_formset.save()
+            bdf_formset.save()
             
-            # Mark IPCR as appraised
             ipcr.status = 'appraised'
             ipcr.save()
-            messages.success(request, "Appraisal ratings saved successfully.")
+            messages.success(request, "Appraisal and BDF saved successfully.")
             return redirect('core:supervisor_dashboard')
     else:
-        formset = AppraisalFormSet(queryset=ipcr.targets.all())
+        target_formset = AppraisalFormSet(queryset=ipcr.targets.all())
+        bdf_formset = BehavioralRatingFormSet(queryset=ipcr.behavioral_ratings.all())
 
     context = {
         'ipcr': ipcr,
-        'formset': formset,
+        'formset': target_formset,
+        'bdf_formset': bdf_formset,
     }
     return render(request, 'core/appraise_ipcr.html', context)

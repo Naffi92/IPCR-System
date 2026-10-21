@@ -22,6 +22,7 @@
         {% elif ipcr.status == 'submitted' %}<span class="badge badge-yellow">Submitted</span>
         {% elif ipcr.status == 'approved' %}<span class="badge badge-green">Approved</span>
         {% elif ipcr.status == 'returned' %}<span class="badge badge-red">Returned for Revision</span>
+        {% elif ipcr.status == 'appraised' %}<span class="badge badge-green">Appraised (Scored)</span> <!-- ADD THIS -->
         {% endif %}
     </p>
     <p><strong>Total Weight:</strong> {{ total_weight }}% / 100%</p>

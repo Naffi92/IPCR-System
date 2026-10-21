@@ -192,6 +192,27 @@ class IPCR(models.Model):
         weighted_sum = sum((t.average_rating or 0) * float(t.weight) for t in targets) # Cast to float
         return round(weighted_sum / total_weight, 2)
 
+    @property
+    def behavioral_average(self):
+        # Filter out any blank (None) ratings before calculating
+        ratings = self.behavioral_ratings.filter(rating__isnull=False)
+        if not ratings.exists():
+            return None
+        return round(sum(r.rating for r in ratings) / ratings.count(), 2)
+
+    @property
+    def overall_rating(self):
+        # Assuming standard SPMS weights: 80% Targets, 20% Behavioral
+        target_rating = self.final_rating
+        bdf_rating = self.behavioral_average
+        
+        if target_rating is None:
+            return None
+        if bdf_rating is None:
+            return target_rating # If no BDF scored yet, just return target rating
+            
+        return round((float(target_rating) * 0.8) + (float(bdf_rating) * 0.2), 2)
+
 
 class IPCRTarget(models.Model):
     ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='targets')
@@ -253,6 +274,7 @@ class BehavioralRating(models.Model):
     ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='behavioral_ratings')
     dimension = models.ForeignKey(BehavioralDimension, on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(
+        null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
     remarks = models.TextField(blank=True)
@@ -263,7 +285,7 @@ class BehavioralRating(models.Model):
     def __str__(self):
         return f"{self.dimension.name}: {self.rating}"
 
-
+    
 class CriticalIncident(models.Model):
     INCIDENT_TYPE = [
         ('positive', 'Positive'),

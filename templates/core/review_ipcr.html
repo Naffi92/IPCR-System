@@ -64,4 +64,10 @@
 <div style="margin-top: 20px;">
     <a href="{% url 'core:supervisor_dashboard' %}">&larr; Back to Dashboard</a>
 </div>
+<div class="card" style="margin-top: 30px; background: #fff3cd;">
+    <h3>Log a Critical Incident</h3>
+    <p style="font-size: 13px;">Record positive or negative behaviors observed during this period.</p>
+    <!-- We will build the actual form handling for this in the next step, for now let's link to admin -->
+    <a href="/admin/core/criticalincident/add/" target="_blank" style="background: #856404; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">+ Add Critical Incident (via Admin)</a>
+</div>
 {% endblock %}
