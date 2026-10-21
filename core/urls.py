@@ -21,4 +21,6 @@ urlpatterns = [
     path('supervisor/review/<int:ipcr_id>/', views.review_ipcr, name='review_ipcr'),
 
     path('supervisor/appraise/<int:ipcr_id>/', views.appraise_ipcr, name='appraise_ipcr'),
+
+    path('ipcr/<int:ipcr_id>/pdf/', views.export_ipcr_pdf, name='export_ipcr_pdf'),
 ]

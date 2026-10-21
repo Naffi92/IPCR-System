@@ -10,6 +10,9 @@ from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget
 from .forms import IPCRTargetForm, AppraisalFormSet
 from .forms import IPCRTargetForm, AppraisalFormSet, BehavioralRatingFormSet, CriticalIncidentForm
 from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget, BehavioralDimension, BehavioralRating, CriticalIncident
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
 
 @login_required
 def home(request):
@@ -342,9 +345,41 @@ def appraise_ipcr(request, ipcr_id):
         target_formset = AppraisalFormSet(queryset=ipcr.targets.all())
         bdf_formset = BehavioralRatingFormSet(queryset=ipcr.behavioral_ratings.all())
 
+    # Clean up empty targets and calculate weight
+    ipcr.targets.filter(output__isnull=True).delete() 
+    ipcr.targets.filter(output='').delete()
+    total_weight = sum(float(t.weight) for t in ipcr.targets.all())
+
     context = {
+        'total_weight': total_weight,
         'ipcr': ipcr,
         'formset': target_formset,
         'bdf_formset': bdf_formset,
     }
     return render(request, 'core/appraise_ipcr.html', context)
+
+@login_required
+def export_ipcr_pdf(request, ipcr_id):
+    """Generate a PDF of the IPCR form."""
+    ipcr = get_object_or_404(IPCR, id=ipcr_id)
+    
+    # Security check: Only the Ratee, the Rater, HRMO, or Admin can download this PDF
+    is_ratee = hasattr(request.user, 'employee') and request.user.employee == ipcr.employee
+    is_rater = hasattr(request.user, 'employee') and request.user.employee == ipcr.main_appraiser
+    is_hrmo = request.user.groups.filter(name='HRMO').exists() or request.user.is_superuser
+    
+    if not (is_ratee or is_rater or is_hrmo):
+        messages.error(request, "You do not have permission to view this IPCR.")
+        return redirect('core:home')
+
+    # Render the HTML template
+    html_string = render_to_string('core/ipcr_pdf.html', {'ipcr': ipcr})
+    
+    # Generate PDF
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+
+    # Return as HTTP Response
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="IPCR_{ipcr.employee.employee_id}_{ipcr.rating_period.name}.pdf"'
+    return response

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page { size: A4; margin: 2cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; }
+        h2, h3 { text-align: center; margin: 5px 0; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
+        th { background-color: #f0f0f0; text-align: center; }
+        .center { text-align: center; }
+        .signature-block { margin-top: 50px; display: flex; justify-content: space-between; }
+        .signature-line { border-top: 1px solid #000; width: 40%; text-align: center; padding-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>INDIVIDUAL PERFORMANCE COMMITMENT AND REVIEW (IPCR)</h2>
+        <p>Mindanao State University – Maguindanao</p>
+        <p><strong>Rating Period:</strong> {{ ipcr.rating_period.name }}</p>
+    </div>
+
+    <table>
+        <tr>
+            <td><strong>Name:</strong> {{ ipcr.employee.user.get_full_name|default:ipcr.employee.user.username }}</td>
+            <td><strong>Employee ID:</strong> {{ ipcr.employee.employee_id }}</td>
+            <td><strong>Division:</strong> {{ ipcr.employee.division.name }}</td>
+        </tr>
+        <tr>
+            <td><strong>Position:</strong> {{ ipcr.employee.position }}</td>
+            <td colspan="2"><strong>Status:</strong> {{ ipcr.get_status_display }}</td>
+        </tr>
+    </table>
+
+    <h3>PART I: TARGETS AND ACCOMPLISHMENTS</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="25%">Output / Target</th>
+                <th width="25%">Success Indicators (Q/E/T)</th>
+                <th width="25%">Actual Accomplishments</th>
+                <th width="10%">Weight</th>
+                <th width="15%">Rating (1-5)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for target in ipcr.targets.all %}
+            <tr>
+                <td>{{ target.output }}</td>
+                <td>
+                    <strong>Q:</strong> {{ target.quality_target }}<br>
+                    <strong>E:</strong> {{ target.efficiency_target }}<br>
+                    <strong>T:</strong> {{ target.timeliness_target }}
+                </td>
+                <td>
+                    <strong>Q:</strong> {{ target.quality_actual|default:"—" }}<br>
+                    <strong>E:</strong> {{ target.efficiency_actual|default:"—" }}<br>
+                    <strong>T:</strong> {{ target.timeliness_actual|default:"—" }}
+                </td>
+                <td class="center">{{ target.weight }}%</td>
+                <td class="center">
+                    Q: {{ target.quality_rating|default:"—" }}<br>
+                    E: {{ target.efficiency_rating|default:"—" }}<br>
+                    T: {{ target.timeliness_rating|default:"—" }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>PART II: BEHAVIORAL DIMENSIONS</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="40%">Behavioral Dimension</th>
+                <th width="15%">Rating (1-5)</th>
+                <th width="45%">Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bdf in ipcr.behavioral_ratings.all %}
+            {% if bdf.rating %}
+            <tr>
+                <td>{{ bdf.dimension.name }}</td>
+                <td class="center">{{ bdf.rating }}</td>
+                <td>{{ bdf.remarks|default:"—" }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>FINAL RATING</h3>
+    <table>
+        <tr>
+            <td width="50%"><strong>Target Rating:</strong> {{ ipcr.final_rating|default:"Pending" }} / 5.00</td>
+            <td width="50%"><strong>Behavioral Average:</strong> {{ ipcr.behavioral_average|default:"Pending" }} / 5.00</td>
+        </tr>
+        <tr>
+            <td colspan="2" style="font-size: 14px; text-align: center;">
+                <strong>OVERALL RATING: {{ ipcr.overall_rating|default:"Pending" }} / 5.00</strong>
+            </td>
+        </tr>
+    </table>
+
+    <div class="signature-block">
+        <div class="signature-line">
+            <strong>{{ ipcr.employee.user.get_full_name|default:ipcr.employee.user.username }}</strong><br>
+            Ratee Signature & Date
+        </div>
+        <div class="signature-line">
+            <strong>{{ ipcr.main_appraiser.user.get_full_name|default:ipcr.main_appraiser.user.username|default:"N/A" }}</strong><br>
+            Supervisor / Rater Signature & Date
+        </div>
+    </div>
+
+</body>
+</html>
