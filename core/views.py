@@ -13,6 +13,8 @@ from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget, Behavior
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from weasyprint import HTML
+from .forms import OPCRForm, OPCRTargetFormSet, DPCRForm, DPCRTargetFormSet
+from .models import OPCR, OPCRTarget, DPCR, DPCRTarget
 
 @login_required
 def home(request):
@@ -383,3 +385,81 @@ def export_ipcr_pdf(request, ipcr_id):
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="IPCR_{ipcr.employee.employee_id}_{ipcr.rating_period.name}.pdf"'
     return response
+
+@role_required('HRMO', 'Agency Head')
+def opcr_management(request):
+    """View to create and manage OPCRs."""
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    opcrs = OPCR.objects.filter(rating_period=active_period)
+
+    opcr_form = OPCRForm(initial={'rating_period': active_period})
+    
+    if request.method == 'POST':
+        form = OPCRForm(request.POST)
+        target_formset = OPCRTargetFormSet(request.POST)
+        if form.is_valid() and target_formset.is_valid():
+            opcr = form.save(commit=False)
+            opcr.created_by = request.user
+            opcr.save()
+            
+            targets = target_formset.save(commit=False)
+            for target in targets:
+                target.opcr = opcr
+                target.save()
+            messages.success(request, "OPCR created successfully.")
+            return redirect('core:opcr_management')
+    else:
+        target_formset = OPCRTargetFormSet(queryset=OPCRTarget.objects.none())
+
+    context = {
+        'opcrs': opcrs,
+        'opcr_form': opcr_form,
+        'target_formset': target_formset,
+        'active_period': active_period,
+    }
+    return render(request, 'core/opcr_management.html', context)
+
+
+@role_required('Division Head', 'HRMO')
+def dpcr_management(request):
+    """View for Division Heads to create DPCRs for their division."""
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    try:
+        employee = request.user.employee
+    except Employee.DoesNotExist:
+        messages.error(request, "You do not have an Employee profile.")
+        return redirect('core:home')
+        
+    dpcrs = DPCR.objects.filter(rating_period=active_period, division=employee.division)
+    opcr_targets = OPCRTarget.objects.filter(opcr__rating_period=active_period)
+
+    if request.method == 'POST':
+        form = DPCRForm(request.POST)
+        target_formset = DPCRTargetFormSet(request.POST)
+        if form.is_valid() and target_formset.is_valid():
+            dpcr = form.save(commit=False)
+            dpcr.created_by = request.user
+            dpcr.save()
+            
+            targets = target_formset.save(commit=False)
+            for target in targets:
+                target.dpcr = dpcr
+                target.save()
+            messages.success(request, "DPCR created successfully.")
+            return redirect('core:dpcr_management')
+    else:
+        # Default to the user's own division
+        form = DPCRForm(initial={'rating_period': active_period, 'division': employee.division})
+        target_formset = DPCRTargetFormSet(queryset=DPCRTarget.objects.none())
+
+    # Limit the OPCR target choices in the formset
+    for form_item in target_formset:
+        form_item.fields['opcr_target'].queryset = opcr_targets
+
+    context = {
+        'dpcrs': dpcrs,
+        'form': form,
+        'target_formset': target_formset,
+        'active_period': active_period,
+    }
+    return render(request, 'core/dpcr_management.html', context)

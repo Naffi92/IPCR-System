@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}DPCR Management{% endblock %}
+
+{% block content %}
+<h2>DPCR Management - {{ active_period.name }}</h2>
+
+<div class="card">
+    <h3>Create New DPCR</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <h4>DPCR Targets</h4>
+        {{ target_formset.management_form }}
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+                <tr>
+                    <th>Division Output</th>
+                    <th>Success Indicator</th>
+                    <th>Weight (%)</th>
+                    <th>Link to OPCR Target</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in target_formset %}
+                <tr>
+                    <td>{{ form.output }}</td>
+                    <td>{{ form.success_indicator }}</td>
+                    <td>{{ form.weight }}</td>
+                    <td>{{ form.opcr_target }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <button type="submit" style="background: #003366; color: white; padding: 10px 20px; border: none; border-radius: 4px; margin-top: 15px;">Save DPCR</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Existing DPCRs for Your Division</h3>
+    <ul>
+        {% for dpcr in dpcrs %}
+            <li><strong>{{ dpcr.division.name }}</strong> (Status: {{ dpcr.get_status_display }})</li>
+        {% empty %}
+            <li>No DPCRs created yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

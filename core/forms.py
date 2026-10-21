@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import modelformset_factory
 from .models import IPCRTarget, DPCRTarget, BehavioralRating, BehavioralDimension, CriticalIncident
+from .models import OPCR, OPCRTarget, DPCR, DPCRTarget
 
 
 class IPCRTargetForm(forms.ModelForm):
@@ -83,3 +84,44 @@ class CriticalIncidentForm(forms.ModelForm):
             'date_occurred': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+
+class OPCRForm(forms.ModelForm):
+    class Meta:
+        model = OPCR
+        fields = ['office_name', 'rating_period']
+        widgets = {
+            'office_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'rating_period': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+OPCRTargetFormSet = modelformset_factory(
+    OPCRTarget,
+    fields=['mfo', 'success_indicator', 'weight'],
+    extra=3,
+    widgets={
+        'mfo': forms.TextInput(attrs={'class': 'form-control'}),
+        'success_indicator': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        'weight': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 100}),
+    }
+)
+
+class DPCRForm(forms.ModelForm):
+    class Meta:
+        model = DPCR
+        fields = ['division', 'rating_period']
+        widgets = {
+            'division': forms.Select(attrs={'class': 'form-control'}),
+            'rating_period': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+DPCRTargetFormSet = modelformset_factory(
+    DPCRTarget,
+    fields=['output', 'success_indicator', 'weight', 'opcr_target'],
+    extra=3,
+    widgets={
+        'output': forms.TextInput(attrs={'class': 'form-control'}),
+        'success_indicator': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        'weight': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 100}),
+        'opcr_target': forms.Select(attrs={'class': 'form-control'}),
+    }
+)

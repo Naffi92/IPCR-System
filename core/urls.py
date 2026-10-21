@@ -23,4 +23,7 @@ urlpatterns = [
     path('supervisor/appraise/<int:ipcr_id>/', views.appraise_ipcr, name='appraise_ipcr'),
 
     path('ipcr/<int:ipcr_id>/pdf/', views.export_ipcr_pdf, name='export_ipcr_pdf'),
+
+    path('opcr/', views.opcr_management, name='opcr_management'),
+    path('dpcr/', views.dpcr_management, name='dpcr_management'),
 ]

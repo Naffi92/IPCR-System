@@ -104,6 +104,14 @@
         {% if user.is_staff or user.is_superuser %}
             <a href="/admin/">Admin</a>
         {% endif %}
+
+                {% if user.is_superuser or 'HRMO' in user_groups or 'Agency Head' in user_groups %}
+            <a href="{% url 'core:opcr_management' %}">OPCR Management</a>
+        {% endif %}
+
+        {% if user.is_superuser or 'HRMO' in user_groups or 'Division Head' in user_groups %}
+            <a href="{% url 'core:dpcr_management' %}">DPCR Management</a>
+        {% endif %}
     </nav>
     {% endif %}
 
