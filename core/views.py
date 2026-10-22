@@ -530,18 +530,18 @@ def export_dashboard_excel(request):
             total, draft, submitted, approved, returned, no_ipcr, f"{round(compliance, 1)}%"
         ])
 
-    # Auto-adjust column widths
-    for col in ws.columns:
+    # Auto-adjust column widths (Safely handling merged cells)
+    from openpyxl.utils import get_column_letter
+    for i, col in enumerate(ws.columns, 1):
         max_length = 0
-        column = col[0].column_letter
         for cell in col:
             try:
-                if len(str(cell.value)) > max_length:
+                if cell.value and len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
-            except:
-                pass
+            except AttributeError:
+                pass # Skip MergedCells
         adjusted_width = (max_length + 2)
-        ws.column_dimensions[column].width = adjusted_width
+        ws.column_dimensions[get_column_letter(i)].width = adjusted_width
 
     # Return response
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

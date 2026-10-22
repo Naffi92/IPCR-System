@@ -120,9 +120,6 @@
     {% endif %}
 
     <main>
-        {% block content %}{% endblock %}
-    </main>
-    <main>
         {% if messages %}
             <div style="max-width: 1200px; margin: 20px auto 0; padding: 0 24px;">
                 {% for message in messages %}
@@ -132,6 +129,10 @@
                 {% endfor %}
             </div>
         {% endif %}
+    </main>
+
+    <main>
+        {% block content %}{% endblock %}
     </main>
 
     <footer>
