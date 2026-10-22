@@ -3,6 +3,10 @@
 
 {% block content %}
 <h2>Submission Monitoring Dashboard</h2>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>Submission Monitoring Dashboard</h2>
+    <a href="{% url 'core:export_dashboard_excel' %}" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">Export to Excel</a>
+</div>
 
 {% if not active_period %}
     <div class="card">

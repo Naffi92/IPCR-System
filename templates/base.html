@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}IPCR System{% endblock %} — MSU-Maguindanao</title>
     <style>
+        .message-box { padding: 15px; margin-bottom: 20px; border-radius: 4px; font-weight: bold; }
+        .message-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .message-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .message-info { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
         * { box-sizing: border-box; }
         body {
             font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -114,24 +118,20 @@
         {% endif %}
     </nav>
     {% endif %}
-    
+
     <main>
-        <!-- Message Display Block -->
+        {% block content %}{% endblock %}
+    </main>
+    <main>
         {% if messages %}
             <div style="max-width: 1200px; margin: 20px auto 0; padding: 0 24px;">
                 {% for message in messages %}
-                    <div style="padding: 15px; margin-bottom: 20px; border-radius: 4px; font-weight: bold;
-                        {% if message.tags == 'error' %} background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
-                        {% elif message.tags == 'success' %} background: #d4edda; color: #155724; border: 1px solid #c3e6cb;
-                        {% else %} background: #cce5ff; color: #004085; border: 1px solid #b8daff;
-                        {% endif %}">
+                    <div class="message-box {% if message.tags == 'error' %}message-error{% elif message.tags == 'success' %}message-success{% else %}message-info{% endif %}">
                         {{ message }}
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
-
-        {% block content %}{% endblock %}
     </main>
 
     <footer>

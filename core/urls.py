@@ -26,4 +26,6 @@ urlpatterns = [
 
     path('opcr/', views.opcr_management, name='opcr_management'),
     path('dpcr/', views.dpcr_management, name='dpcr_management'),
+
+    path('dashboard/export-excel/', views.export_dashboard_excel, name='export_dashboard_excel'),
 ]

@@ -1,3 +1,6 @@
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.db.models import Count, Q
 from django.contrib.auth.decorators import login_required
@@ -16,6 +19,7 @@ from weasyprint import HTML
 from .forms import OPCRForm, OPCRTargetFormSet, DPCRForm, DPCRTargetFormSet
 from .models import OPCR, OPCRTarget, DPCR, DPCRTarget
 from django.utils import timezone
+
 
 @login_required
 def home(request):
@@ -470,3 +474,77 @@ def dpcr_management(request):
         'active_period': active_period,
     }
     return render(request, 'core/dpcr_management.html', context)
+
+@role_required('HRMO')
+def export_dashboard_excel(request):
+    """Export the HRMO compliance dashboard to Excel."""
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    if not active_period:
+        messages.error(request, "No active rating period found.")
+        return redirect('core:dashboard')
+
+    # Create a workbook and add a worksheet
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "IPCR Compliance"
+
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")
+    center_align = Alignment(horizontal="center", vertical="center")
+
+    # Title
+    ws.merge_cells('A1:H1')
+    ws['A1'] = f"IPCR Submission Monitoring - {active_period.name}"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = center_align
+
+    # Headers
+    headers = ['Division', 'Total Employees', 'Draft', 'Submitted', 'Approved', 'Returned', 'No IPCR', 'Compliance Rate']
+    ws.append([])  # Empty row for spacing
+    ws.append(headers)
+    
+    # Style headers
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+
+    # Data
+    for division in Division.objects.all().order_by('name'):
+        employees = Employee.objects.filter(division=division)
+        total = employees.count()
+        ipcrs = IPCR.objects.filter(rating_period=active_period, employee__division=division)
+
+        submitted = ipcrs.filter(status='submitted').count()
+        approved = ipcrs.filter(status='approved').count()
+        returned = ipcrs.filter(status='returned').count()
+        draft = ipcrs.filter(status='draft').count()
+        with_ipcr = ipcrs.count()
+        no_ipcr = max(total - with_ipcr, 0)
+        compliance = ((submitted + approved) / total * 100) if total else 0
+
+        ws.append([
+            f"{division.code} - {division.name}",
+            total, draft, submitted, approved, returned, no_ipcr, f"{round(compliance, 1)}%"
+        ])
+
+    # Auto-adjust column widths
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Return response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="IPCR_Compliance_{active_period.name.replace(" ", "_")}.xlsx"'
+    wb.save(response)
+    return response
