@@ -14,8 +14,16 @@
     <div class="card">
         <p><strong>Active Rating Period:</strong> {{ active_period.name }}
             ({{ active_period.start_date }} — {{ active_period.end_date }})</p>
-        <p><strong>Target Setting Deadline:</strong> {{ active_period.target_setting_deadline }} ·
-           <strong>Appraisal Deadline:</strong> {{ active_period.appraisal_deadline }}</p>
+        <p>
+            <strong>Target Setting Deadline:</strong> {{ active_period.target_setting_deadline }} <br>
+            <strong>Appraisal Deadline:</strong> {{ active_period.appraisal_deadline }}
+        </p>
+        {% if active_period.target_setting_deadline < today %}
+            <p style="color: red; font-weight: bold;">⚠ Target Setting Deadline has passed.</p>
+        {% endif %}
+        {% if active_period.appraisal_deadline < today %}
+            <p style="color: red; font-weight: bold;">⚠ Appraisal Deadline has passed.</p>
+        {% endif %}
     </div>
 
     <div class="card">

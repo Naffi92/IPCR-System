@@ -221,7 +221,11 @@ def submit_ipcr(request):
     ipcr = get_object_or_404(IPCR, rating_period=active_period, employee=employee)
 
     if request.method == 'POST':
-        # Validation: Cannot submit if total weight != 100
+        # DEADLINE CHECK
+        if timezone.now().date() > active_period.target_setting_deadline:
+            messages.error(request, f"The target setting deadline ({active_period.target_setting_deadline}) has passed. You cannot submit.")
+            return redirect('core:my_ipcr')
+
         total_weight = sum(t.weight for t in ipcr.targets.all())
         if total_weight != 100:
             messages.error(request, f"Cannot submit. Total weight is {total_weight}%. It must be exactly 100%.")
@@ -231,15 +235,12 @@ def submit_ipcr(request):
             messages.error(request, "Cannot submit. You have no targets.")
             return redirect('core:my_ipcr')
 
-        # Validation: Must have a supervisor assigned
         if not employee.supervisor:
             messages.error(request, "Cannot submit. You do not have a supervisor assigned. Please contact HRMO.")
             return redirect('core:my_ipcr')
 
-        # Perform submission
         ipcr.status = 'submitted'
         ipcr.main_appraiser = employee.supervisor
-        from django.utils import timezone
         ipcr.submitted_at = timezone.now()
         ipcr.save()
         
@@ -330,6 +331,11 @@ def appraise_ipcr(request, ipcr_id):
     active_dimensions = BehavioralDimension.objects.filter(is_active=True)
     for dim in active_dimensions:
         BehavioralRating.objects.get_or_create(ipcr=ipcr, dimension=dim)
+
+    # DEADLINE CHECK
+    if timezone.now().date() > ipcr.rating_period.appraisal_deadline:
+        messages.error(request, f"The appraisal deadline ({ipcr.rating_period.appraisal_deadline}) has passed. You cannot modify scores.")
+        return redirect('core:supervisor_dashboard')
 
     if request.method == 'POST':
         target_formset = AppraisalFormSet(request.POST, queryset=ipcr.targets.all())
