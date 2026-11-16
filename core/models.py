@@ -2,329 +2,184 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
+from django.utils import timezone
 
+# ==========================================
+# 1. HIERARCHY & USER MANAGEMENT
+# ==========================================
+
+class Office(models.Model):
+    """Represents Colleges, Offices, and Departments in a nested hierarchy."""
+    name = models.CharField(max_length=200)
+    code = models.CharField(max_length=20, unique=True)
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='sub_offices')
+    head = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='headed_offices')
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+class Position(models.Model):
+    """Represents Faculty and Staff positions with specific weight allocations."""
+    TYPE_CHOICES = [('Faculty', 'Faculty'), ('Staff', 'Staff')]
+    name = models.CharField(max_length=100)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    
+    def __str__(self):
+        return f"{self.name} ({self.type})"
+
+class Employee(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee')
+    employee_id = models.CharField(max_length=30, unique=True)
+    office = models.ForeignKey(Office, on_delete=models.SET_NULL, null=True, related_name='employees')
+    position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, related_name='employees')
+    e_signature = models.ImageField(upload_to='signatures/', null=True, blank=True)
+    digital_hash = models.CharField(max_length=64, blank=True, null=True, help_text="Auto-generated SHA-256 hash")
+
+    def __str__(self):
+        return f"{self.employee_id} - {self.user.get_full_name() or self.user.username}"
+
+# ==========================================
+# 2. RATING PERIODS & TEMPLATES
+# ==========================================
 
 class RatingPeriod(models.Model):
     name = models.CharField(max_length=100)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    target_setting_deadline = models.DateField()
-    appraisal_deadline = models.DateField()
+    target_start = models.DateField()
+    target_end = models.DateField()
+    midyear_date = models.DateField(null=True, blank=True)
+    accomplishment_start = models.DateField()
+    accomplishment_end = models.DateField()
     is_active = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-start_date']
 
     def __str__(self):
         return self.name
 
+class Template(models.Model):
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    applicable_to = models.CharField(max_length=20, choices=[('Faculty', 'Faculty'), ('Staff', 'Staff')])
+    
+    def __str__(self):
+        return self.name
 
-class Division(models.Model):
-    name = models.CharField(max_length=200)
-    code = models.CharField(max_length=20, unique=True)
-    head = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='headed_divisions'
-    )
-
-    class Meta:
-        ordering = ['name']
+class TemplateCategory(models.Model):
+    template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='categories')
+    name = models.CharField(max_length=100) # e.g., GOALS, CORE, SUPPORT, Instruction
+    weight_percentage = models.DecimalField(max_digits=5, decimal_places=2) # e.g., 60.00
+    order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"{self.code} — {self.name}"
+        return f"{self.name} ({self.weight_percentage}%)"
 
+class TemplateKRA(models.Model):
+    category = models.ForeignKey(TemplateCategory, on_delete=models.CASCADE, related_name='kras')
+    name = models.CharField(max_length=250) # e.g., Curriculum Development
+    order = models.PositiveIntegerField(default=0)
 
-class Employee(models.Model):
-    EMPLOYMENT_STATUS = [
-        ('permanent', 'Permanent'),
-        ('temporary', 'Temporary'),
-        ('casual', 'Casual'),
-        ('contractual', 'Contractual'),
+    def __str__(self):
+        return self.name
+
+class TemplateColumn(models.Model):
+    PHASE_CHOICES = [
+        ('Target', 'Target Phase Only'),
+        ('Accomplishment', 'Accomplishment Phase Only'),
+        ('Both', 'Both Phases')
     ]
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee')
-    employee_id = models.CharField(max_length=30, unique=True)
-    division = models.ForeignKey(
-        Division, on_delete=models.SET_NULL, null=True,
-        related_name='employees'
-    )
-    position = models.CharField(max_length=200)
-    employment_status = models.CharField(
-        max_length=20, choices=EMPLOYMENT_STATUS, default='permanent'
-    )
-    supervisor = models.ForeignKey(
-        'self', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='subordinates'
-    )
-    date_hired = models.DateField(null=True, blank=True)
+    template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='columns')
+    name = models.CharField(max_length=100) # e.g., MFO, Success Indicator, Actual Accomplishment
+    phase_availability = models.CharField(max_length=20, choices=PHASE_CHOICES, default='Both')
+    is_required = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"{self.employee_id} — {self.user.get_full_name() or self.user.username}"
+        return f"{self.name} ({self.phase_availability})"
 
+class AdjectivalMatrix(models.Model):
+    template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='adjectival_ratings')
+    min_score = models.DecimalField(max_digits=3, decimal_places=2)
+    max_score = models.DecimalField(max_digits=3, decimal_places=2)
+    label = models.CharField(max_length=50) # e.g., Outstanding
 
-class OPCR(models.Model):
+    def __str__(self):
+        return f"{self.label} ({self.min_score} - {self.max_score})"
+
+# ==========================================
+# 3. THE DOCUMENTS (OPCR, DPCR, IPCR)
+# ==========================================
+
+class BaseDocument(models.Model):
+    """Abstract base model for OPCR, DPCR, and IPCR to share state and audit fields."""
     STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('approved', 'Approved'),
+        ('Draft', 'Draft'),
+        ('Target Submitted', 'Target Submitted'),
+        ('Target Approved', 'Target Approved'),
+        ('Mid-Year Review', 'Mid-Year Review'),
+        ('Accomplishment Submitted', 'Accomplishment Submitted'),
+        ('Rater Scored', 'Rater Scored'),
+        ('Final Approved', 'Final Approved'),
+        ('Returned', 'Returned for Revision')
     ]
-
-    rating_period = models.ForeignKey(
-        RatingPeriod, on_delete=models.CASCADE, related_name='opcrs'
-    )
-    office_name = models.CharField(max_length=200)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    created_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name='created_opcrs'
-    )
-    approved_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='approved_opcrs'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-rating_period__start_date']
-
-    def __str__(self):
-        return f"OPCR — {self.office_name} ({self.rating_period.name})"
-
-
-class OPCRTarget(models.Model):
-    opcr = models.ForeignKey(OPCR, on_delete=models.CASCADE, related_name='targets')
-    mfo = models.CharField(max_length=500, help_text='Major Final Output')
-    success_indicator = models.TextField()
-    weight = models.DecimalField(
-        max_digits=5, decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('100.00'))]
-    )
-
-    def __str__(self):
-        return f"{self.mfo} ({self.weight}%)"
-
-
-class DPCR(models.Model):
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('approved', 'Approved'),
-    ]
-
-    rating_period = models.ForeignKey(
-        RatingPeriod, on_delete=models.CASCADE, related_name='dpcrs'
-    )
-    division = models.ForeignKey(
-        Division, on_delete=models.CASCADE, related_name='dpcrs'
-    )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    created_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name='created_dpcrs'
-    )
-    approved_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='approved_dpcrs'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"DPCR — {self.division.name} ({self.rating_period.name})"
-
-
-class DPCRTarget(models.Model):
-    dpcr = models.ForeignKey(DPCR, on_delete=models.CASCADE, related_name='targets')
-    opcr_target = models.ForeignKey(
-        OPCRTarget, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='dpcr_targets'
-    )
-    output = models.CharField(max_length=500)
-    success_indicator = models.TextField()
-    weight = models.DecimalField(
-        max_digits=5, decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('100.00'))]
-    )
-
-    def __str__(self):
-        return f"{self.output} ({self.weight}%)"
-
-
-class IPCR(models.Model):
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('approved', 'Approved'),
-        ('returned', 'Returned for Revision'),
-        ('appraised', 'Appraised (Scored)'),
-    ]
-
-    rating_period = models.ForeignKey(
-        RatingPeriod, on_delete=models.CASCADE, related_name='ipcrs'
-    )
-    employee = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, related_name='ipcrs'
-    )
-    main_appraiser = models.ForeignKey(
-        Employee, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='appraised_ipcrs'
-    )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    submitted_at = models.DateTimeField(null=True, blank=True)
-    approved_at = models.DateTimeField(null=True, blank=True)
+    rating_period = models.ForeignKey(RatingPeriod, on_delete=models.CASCADE)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Draft')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['rating_period', 'employee']
-        ordering = ['-rating_period__start_date']
+        abstract = True
 
-    def __str__(self):
-        return f"IPCR — {self.employee} ({self.rating_period.name})"
+class IPCR(BaseDocument):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='ipcrs')
+    
+    # Manual Assignments (Validated by System)
+    target_approver = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='target_approvals')
+    assessed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
+    final_rater = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='final_ratings')
 
-    @property
-    def final_rating(self):
-        targets = self.targets.all()
-        if not targets:
-            return None
-        total_weight = sum(float(t.weight) for t in targets) # Cast to float
-        if total_weight == 0:
-            return None
-        weighted_sum = sum((t.average_rating or 0) * float(t.weight) for t in targets) # Cast to float
-        return round(weighted_sum / total_weight, 2)
-
-    @property
-    def behavioral_average(self):
-        # Filter out any blank (None) ratings before calculating
-        ratings = self.behavioral_ratings.filter(rating__isnull=False)
-        if not ratings.exists():
-            return None
-        return round(sum(r.rating for r in ratings) / ratings.count(), 2)
-
-    @property
-    def overall_rating(self):
-        # Assuming standard SPMS weights: 80% Targets, 20% Behavioral
-        target_rating = self.final_rating
-        bdf_rating = self.behavioral_average
-        
-        if target_rating is None:
-            return None
-        if bdf_rating is None:
-            return target_rating # If no BDF scored yet, just return target rating
-            
-        return round((float(target_rating) * 0.8) + (float(bdf_rating) * 0.2), 2)
-
-
-class IPCRTarget(models.Model):
-    ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='targets')
-    dpcr_target = models.ForeignKey(
-        DPCRTarget, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='ipcr_targets'
-    )
-    output = models.CharField(max_length=500)
-    weight = models.DecimalField(
-        max_digits=5, decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01')), MaxValueValidator(Decimal('100.00'))]
-    )
-
-    quality_target = models.TextField(blank=True)
-    efficiency_target = models.TextField(blank=True)
-    timeliness_target = models.TextField(blank=True)
-
-    quality_actual = models.TextField(blank=True)
-    efficiency_actual = models.TextField(blank=True)
-    timeliness_actual = models.TextField(blank=True)
-
-    quality_rating = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
-    efficiency_rating = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
-    timeliness_rating = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
-
-    def __str__(self):
-        return self.output
+class IPCRRow(models.Model):
+    """Represents a single row of output/KPI in the IPCR"""
+    ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='rows')
+    kra = models.ForeignKey(TemplateKRA, on_delete=models.SET_NULL, null=True)
+    dynamic_data = models.JSONField(default=dict) # Stores column values like {"MFO": "Train teachers", "Actual": "Trained 10"}
+    
+    # Ratings (Filled during Accomplishment Phase)
+    q_rating = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    e_rating = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    t_rating = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    remarks = models.TextField(blank=True)
 
     @property
     def average_rating(self):
-        ratings = [
-            r for r in [
-                self.quality_rating, self.efficiency_rating, self.timeliness_rating
-            ] if r is not None
-        ]
+        ratings = [r for r in [self.q_rating, self.e_rating, self.t_rating] if r is not None]
         return sum(ratings) / len(ratings) if ratings else None
 
+class OPCR(BaseDocument):
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='opcrs')
+    # Targets are stored dynamically just like IPCR
 
-class BehavioralDimension(models.Model):
-    name = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    weight = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
-    is_active = models.BooleanField(default=True)
+class DPCR(BaseDocument):
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='dpcrs')
 
-    def __str__(self):
-        return self.name
+# ==========================================
+# 4. SYSTEM LOGS & FEATURES
+# ==========================================
 
-
-class BehavioralRating(models.Model):
-    ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='behavioral_ratings')
-    dimension = models.ForeignKey(BehavioralDimension, on_delete=models.CASCADE)
-    rating = models.PositiveSmallIntegerField(
-        null=True, blank=True,
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
-    )
-    remarks = models.TextField(blank=True)
-
-    class Meta:
-        unique_together = ['ipcr', 'dimension']
+class AuditTrail(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=255)
+    document_type = models.CharField(max_length=50)
+    document_id = models.IntegerField()
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.dimension.name}: {self.rating}"
+        return f"{self.timestamp} - {self.user} - {self.action}"
 
-    
-class CriticalIncident(models.Model):
-    INCIDENT_TYPE = [
-        ('positive', 'Positive'),
-        ('negative', 'Negative'),
-    ]
-
-    employee = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, related_name='critical_incidents'
-    )
-    rating_period = models.ForeignKey(
-        RatingPeriod, on_delete=models.CASCADE, related_name='critical_incidents'
-    )
-    incident_type = models.CharField(max_length=10, choices=INCIDENT_TYPE)
-    description = models.TextField()
-    date_occurred = models.DateField()
-    recorded_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name='recorded_incidents'
-    )
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    message = models.TextField()
+    url = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ['-date_occurred']
-
     def __str__(self):
-        return f"{self.incident_type} — {self.employee} ({self.date_occurred})"
-
-
-class CoachingJournal(models.Model):
-    ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='coaching_entries')
-    date = models.DateField()
-    discussion = models.TextField()
-    action_plan = models.TextField(blank=True)
-    recorded_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name='coaching_entries'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-date']
-
-    def __str__(self):
-        return f"Coaching — {self.ipcr.employee} ({self.date})"
+        return f"To {self.user.username}: {self.message[:30]}"

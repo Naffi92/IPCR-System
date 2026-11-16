@@ -5,27 +5,12 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('dashboard/', views.dashboard, name='dashboard'),
     
-    # Ratee URLs
-    path('my-ipcr/', views.my_ipcr, name='my_ipcr'),
-    path('my-ipcr/add-target/', views.add_target, name='add_target'),
-    path('my-ipcr/edit-target/<int:target_id>/', views.edit_target, name='edit_target'),
-    path('my-ipcr/delete-target/<int:target_id>/', views.delete_target, name='delete_target'),
-
-    # Ratee Submit
-    path('my-ipcr/submit/', views.submit_ipcr, name='submit_ipcr'),
-    
-    # Rater URLs
-    path('supervisor/', views.supervisor_dashboard, name='supervisor_dashboard'),
-    path('supervisor/review/<int:ipcr_id>/', views.review_ipcr, name='review_ipcr'),
-
-    path('supervisor/appraise/<int:ipcr_id>/', views.appraise_ipcr, name='appraise_ipcr'),
-
-    path('ipcr/<int:ipcr_id>/pdf/', views.export_ipcr_pdf, name='export_ipcr_pdf'),
-
-    path('opcr/', views.opcr_management, name='opcr_management'),
-    path('dpcr/', views.dpcr_management, name='dpcr_management'),
-
-    path('dashboard/export-excel/', views.export_dashboard_excel, name='export_dashboard_excel'),
+    # Template Builder URLs
+    path('templates/', views.template_dashboard, name='template_dashboard'),
+    path('templates/create/', views.create_template, name='create_template'),
+    path('templates/<int:template_id>/', views.template_detail, name='template_detail'),
+    path('templates/<int:template_id>/add-category/', views.add_category, name='add_category'),
+    path('templates/<int:template_id>/add-column/', views.add_column, name='add_column'),
+    path('categories/<int:category_id>/add-kra/', views.add_kra, name='add_kra'),
 ]

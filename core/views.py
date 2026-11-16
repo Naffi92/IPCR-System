@@ -1,550 +1,82 @@
-import openpyxl
-from openpyxl.styles import Font, Alignment, PatternFill
-from django.http import HttpResponse
-from django.shortcuts import render
-from django.db.models import Count, Q
-from django.contrib.auth.decorators import login_required
-from .decorators import role_required
-from .models import RatingPeriod, Division, Employee, IPCR
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import IPCRTargetForm
-from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget
-from .forms import IPCRTargetForm, AppraisalFormSet
-from .forms import IPCRTargetForm, AppraisalFormSet, BehavioralRatingFormSet, CriticalIncidentForm
-from .models import RatingPeriod, Division, Employee, IPCR, IPCRTarget, BehavioralDimension, BehavioralRating, CriticalIncident
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from weasyprint import HTML
-from .forms import OPCRForm, OPCRTargetFormSet, DPCRForm, DPCRTargetFormSet
-from .models import OPCR, OPCRTarget, DPCR, DPCRTarget
-from django.utils import timezone
-
+from .decorators import role_required
+from .models import Template, TemplateCategory, TemplateKRA, TemplateColumn
+from .forms import TemplateForm, TemplateCategoryForm, TemplateKRAForm, TemplateColumnForm
 
 @login_required
 def home(request):
-    """Temporary home page — will become role-aware later."""
     return render(request, 'core/home.html')
 
+@role_required('HRMO')
+def template_dashboard(request):
+    """Lists all available Templates."""
+    templates = Template.objects.all()
+    return render(request, 'core/template_dashboard.html', {'templates': templates})
 
 @role_required('HRMO')
-def dashboard(request):
-    """
-    HRMO Submission Monitoring Dashboard.
-    Shows compliance stats per division for the active rating period.
-    """
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-
-    division_stats = []
-    totals = {
-        'employees': 0,
-        'submitted': 0,
-        'approved': 0,
-        'returned': 0,
-        'draft': 0,
-        'no_ipcr': 0,
-    }
-
-    if active_period:
-        for division in Division.objects.all().order_by('name'):
-            employees = Employee.objects.filter(division=division)
-            total = employees.count()
-
-            ipcrs = IPCR.objects.filter(
-                rating_period=active_period,
-                employee__division=division,
-            )
-
-            submitted = ipcrs.filter(status='submitted').count()
-            approved = ipcrs.filter(status='approved').count()
-            returned = ipcrs.filter(status='returned').count()
-            draft = ipcrs.filter(status='draft').count()
-            with_ipcr = ipcrs.count()
-            no_ipcr = max(total - with_ipcr, 0)
-
-            compliance = ((submitted + approved) / total * 100) if total else 0
-
-            division_stats.append({
-                'division': division,
-                'total': total,
-                'submitted': submitted,
-                'approved': approved,
-                'returned': returned,
-                'draft': draft,
-                'no_ipcr': no_ipcr,
-                'compliance_rate': round(compliance, 1),
-            })
-
-            totals['employees'] += total
-            totals['submitted'] += submitted
-            totals['approved'] += approved
-            totals['returned'] += returned
-            totals['draft'] += draft
-            totals['no_ipcr'] += no_ipcr
-
-    overall_compliance = (
-        ((totals['submitted'] + totals['approved']) / totals['employees'] * 100)
-        if totals['employees'] else 0
-    )
-
-    context = {
-        'active_period': active_period,
-        'division_stats': division_stats,
-        'totals': totals,
-        'overall_compliance': round(overall_compliance, 1),
-    }
-    return render(request, 'core/dashboard.html', context)
-
-@login_required
-def my_ipcr(request):
-    """Ratee view: list targets for the active rating period."""
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    
-    if not active_period:
-        messages.warning(request, "There is no active rating period. Please contact HRMO.")
-        return redirect('core:home')
-        
-    # Check if user has an Employee profile
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        messages.error(request, "Your account is not linked to an Employee profile. Please contact HRMO.")
-        return redirect('core:home')
-
-    # Get or create the IPCR for this employee and period
-    ipcr, created = IPCR.objects.get_or_create(
-        rating_period=active_period,
-        employee=employee,
-        defaults={'status': 'draft'}
-    )
-    
-    targets = ipcr.targets.all()
-    total_weight = sum(t.weight for t in targets)
-    
-    context = {
-        'ipcr': ipcr,
-        'targets': targets,
-        'total_weight': total_weight,
-        'active_period': active_period,
-    }
-    return render(request, 'core/my_ipcr.html', context)
-
-
-@login_required
-def add_target(request):
-    """Ratee view: add a new target to their IPCR."""
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    if not active_period:
-        return redirect('core:my_ipcr')
-
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        return redirect('core:home')
-
-    ipcr, _ = IPCR.objects.get_or_create(
-        rating_period=active_period, employee=employee, defaults={'status': 'draft'}
-    )
-
-    if ipcr.status != 'draft':
-        messages.error(request, "Cannot add targets. IPCR is already submitted or approved.")
-        return redirect('core:my_ipcr')
-
+def create_template(request):
+    """Create a new Template."""
     if request.method == 'POST':
-        form = IPCRTargetForm(request.POST, division=employee.division)
-        if form.is_valid():
-            target = form.save(commit=False)
-            target.ipcr = ipcr
-            target.save()
-            messages.success(request, "Target added successfully.")
-            return redirect('core:my_ipcr')
-    else:
-        form = IPCRTargetForm(division=employee.division)
-
-    return render(request, 'core/target_form.html', {'form': form, 'title': 'Add Target'})
-
-
-@login_required
-def edit_target(request, target_id):
-    """Ratee view: edit an existing target."""
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        return redirect('core:home')
-
-    target = get_object_or_404(IPCRTarget, id=target_id, ipcr__employee=employee)
-    
-    if target.ipcr.status != 'draft':
-        messages.error(request, "Cannot edit targets. IPCR is already submitted or approved.")
-        return redirect('core:my_ipcr')
-
-    if request.method == 'POST':
-        form = IPCRTargetForm(request.POST, instance=target, division=employee.division)
+        form = TemplateForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Target updated successfully.")
-            return redirect('core:my_ipcr')
+            messages.success(request, "Template created successfully.")
+            return redirect('core:template_dashboard')
     else:
-        form = IPCRTargetForm(instance=target, division=employee.division)
-
-    return render(request, 'core/target_form.html', {'form': form, 'title': 'Edit Target'})
-
-
-@login_required
-def delete_target(request, target_id):
-    """Ratee view: delete an existing target."""
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        return redirect('core:home')
-
-    target = get_object_or_404(IPCRTarget, id=target_id, ipcr__employee=employee)
-    
-    if target.ipcr.status != 'draft':
-        messages.error(request, "Cannot delete targets. IPCR is already submitted or approved.")
-        return redirect('core:my_ipcr')
-
-    if request.method == 'POST':
-        target.delete()
-        messages.success(request, "Target deleted.")
-        return redirect('core:my_ipcr')
-
-    return render(request, 'core/target_confirm_delete.html', {'target': target})
-
-@login_required
-def submit_ipcr(request):
-    """Ratee view: submit the draft IPCR for approval."""
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        return redirect('core:home')
-
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    if not active_period:
-        return redirect('core:my_ipcr')
-
-    ipcr = get_object_or_404(IPCR, rating_period=active_period, employee=employee)
-
-    if request.method == 'POST':
-        # DEADLINE CHECK
-        if timezone.now().date() > active_period.target_setting_deadline:
-            messages.error(request, f"The target setting deadline ({active_period.target_setting_deadline}) has passed. You cannot submit.")
-            return redirect('core:my_ipcr')
-
-        total_weight = sum(t.weight for t in ipcr.targets.all())
-        if total_weight != 100:
-            messages.error(request, f"Cannot submit. Total weight is {total_weight}%. It must be exactly 100%.")
-            return redirect('core:my_ipcr')
-        
-        if not ipcr.targets.exists():
-            messages.error(request, "Cannot submit. You have no targets.")
-            return redirect('core:my_ipcr')
-
-        if not employee.supervisor:
-            messages.error(request, "Cannot submit. You do not have a supervisor assigned. Please contact HRMO.")
-            return redirect('core:my_ipcr')
-
-        ipcr.status = 'submitted'
-        ipcr.main_appraiser = employee.supervisor
-        ipcr.submitted_at = timezone.now()
-        ipcr.save()
-        
-        messages.success(request, "IPCR submitted successfully to your supervisor.")
-        return redirect('core:my_ipcr')
-
-    return redirect('core:my_ipcr')
-
-
-@role_required('Rater', 'Division Head')
-def supervisor_dashboard(request):
-    """Rater view: list of subordinates' IPCRs pending review."""
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        messages.error(request, "Your account is not linked to an Employee profile.")
-        return redirect('core:home')
-
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    
-    # Get subordinates
-    subordinates = Employee.objects.filter(supervisor=employee)
-    
-    # Get their IPCRs for the active period
-    ipcrs = IPCR.objects.filter(
-        rating_period=active_period,
-        employee__in=subordinates
-    ).order_by('status', 'employee__user__last_name')
-
-    context = {
-        'active_period': active_period,
-        'ipcrs': ipcrs,
-    }
-    return render(request, 'core/supervisor_dashboard.html', context)
-
-
-@role_required('Rater', 'Division Head')
-def review_ipcr(request, ipcr_id):
-    """Rater view: review an IPCR and approve/return it."""
-    try:
-        supervisor = request.user.employee
-    except Employee.DoesNotExist:
-        return redirect('core:home')
-
-    ipcr = get_object_or_404(IPCR, id=ipcr_id, main_appraiser=supervisor)
-    targets = ipcr.targets.all()
-    total_weight = sum(t.weight for t in targets)
-
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        
-        if action == 'approve':
-            ipcr.status = 'approved'
-            from django.utils import timezone
-            ipcr.approved_at = timezone.now()
-            ipcr.save()
-            messages.success(request, f"IPCR for {ipcr.employee.user.get_full_name() or ipcr.employee.user.username} has been approved.")
-        
-        elif action == 'return':
-            ipcr.status = 'returned'
-            ipcr.save()
-            messages.warning(request, f"IPCR returned to {ipcr.employee.user.get_full_name() or ipcr.employee.user.username} for revision.")
-            
-        return redirect('core:supervisor_dashboard')
-
-    context = {
-        'ipcr': ipcr,
-        'targets': targets,
-        'total_weight': total_weight,
-    }
-    return render(request, 'core/review_ipcr.html', context)
-
-@role_required('Rater', 'Division Head')
-def appraise_ipcr(request, ipcr_id):
-    """Rater view: input actuals, 1-5 Q/E/T ratings, and BDF ratings."""
-    try:
-        supervisor = request.user.employee
-    except Employee.DoesNotExist:
-        return redirect('core:home')
-
-    ipcr = get_object_or_404(IPCR, id=ipcr_id, main_appraiser=supervisor)
-    
-    if ipcr.status not in ['approved', 'appraised']:
-        messages.error(request, "You can only appraise an IPCR that has been approved.")
-        return redirect('core:supervisor_dashboard')
-
-    # Ensure BehavioralRating objects exist for all active dimensions
-    active_dimensions = BehavioralDimension.objects.filter(is_active=True)
-    for dim in active_dimensions:
-        BehavioralRating.objects.get_or_create(ipcr=ipcr, dimension=dim)
-
-    # DEADLINE CHECK
-    if timezone.now().date() > ipcr.rating_period.appraisal_deadline:
-        messages.error(request, f"The appraisal deadline ({ipcr.rating_period.appraisal_deadline}) has passed. You cannot modify scores.")
-        return redirect('core:supervisor_dashboard')
-
-    if request.method == 'POST':
-        target_formset = AppraisalFormSet(request.POST, queryset=ipcr.targets.all())
-        bdf_formset = BehavioralRatingFormSet(request.POST, queryset=ipcr.behavioral_ratings.all())
-        
-        if target_formset.is_valid() and bdf_formset.is_valid():
-            target_formset.save()
-            bdf_formset.save()
-            
-            ipcr.status = 'appraised'
-            ipcr.save()
-            messages.success(request, "Appraisal and BDF saved successfully.")
-            return redirect('core:supervisor_dashboard')
-    else:
-        target_formset = AppraisalFormSet(queryset=ipcr.targets.all())
-        bdf_formset = BehavioralRatingFormSet(queryset=ipcr.behavioral_ratings.all())
-
-    # Clean up empty targets and calculate weight
-    ipcr.targets.filter(output__isnull=True).delete() 
-    ipcr.targets.filter(output='').delete()
-    total_weight = sum(float(t.weight) for t in ipcr.targets.all())
-
-    context = {
-        'total_weight': total_weight,
-        'ipcr': ipcr,
-        'formset': target_formset,
-        'bdf_formset': bdf_formset,
-    }
-    return render(request, 'core/appraise_ipcr.html', context)
-
-@login_required
-def export_ipcr_pdf(request, ipcr_id):
-    """Generate a PDF of the IPCR form."""
-    ipcr = get_object_or_404(IPCR, id=ipcr_id)
-    
-    # Security check: Only the Ratee, the Rater, HRMO, or Admin can download this PDF
-    is_ratee = hasattr(request.user, 'employee') and request.user.employee == ipcr.employee
-    is_rater = hasattr(request.user, 'employee') and request.user.employee == ipcr.main_appraiser
-    is_hrmo = request.user.groups.filter(name='HRMO').exists() or request.user.is_superuser
-    
-    if not (is_ratee or is_rater or is_hrmo):
-        messages.error(request, "You do not have permission to view this IPCR.")
-        return redirect('core:home')
-
-    # Render the HTML template
-    html_string = render_to_string('core/ipcr_pdf.html', {'ipcr': ipcr})
-    
-    # Generate PDF
-    html = HTML(string=html_string)
-    pdf = html.write_pdf()
-
-    # Return as HTTP Response
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="IPCR_{ipcr.employee.employee_id}_{ipcr.rating_period.name}.pdf"'
-    return response
-
-@role_required('HRMO', 'Agency Head')
-def opcr_management(request):
-    """View to create and manage OPCRs."""
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    opcrs = OPCR.objects.filter(rating_period=active_period)
-
-    opcr_form = OPCRForm(initial={'rating_period': active_period})
-    
-    if request.method == 'POST':
-        form = OPCRForm(request.POST)
-        target_formset = OPCRTargetFormSet(request.POST)
-        if form.is_valid() and target_formset.is_valid():
-            opcr = form.save(commit=False)
-            opcr.created_by = request.user
-            opcr.save()
-            
-            targets = target_formset.save(commit=False)
-            for target in targets:
-                target.opcr = opcr
-                target.save()
-            messages.success(request, "OPCR created successfully.")
-            return redirect('core:opcr_management')
-    else:
-        target_formset = OPCRTargetFormSet(queryset=OPCRTarget.objects.none())
-
-    context = {
-        'opcrs': opcrs,
-        'opcr_form': opcr_form,
-        'target_formset': target_formset,
-        'active_period': active_period,
-    }
-    return render(request, 'core/opcr_management.html', context)
-
-
-@role_required('Division Head', 'HRMO')
-def dpcr_management(request):
-    """View for Division Heads to create DPCRs for their division."""
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    try:
-        employee = request.user.employee
-    except Employee.DoesNotExist:
-        messages.error(request, "You do not have an Employee profile.")
-        return redirect('core:home')
-        
-    dpcrs = DPCR.objects.filter(rating_period=active_period, division=employee.division)
-    opcr_targets = OPCRTarget.objects.filter(opcr__rating_period=active_period)
-
-    if request.method == 'POST':
-        form = DPCRForm(request.POST)
-        target_formset = DPCRTargetFormSet(request.POST)
-        if form.is_valid() and target_formset.is_valid():
-            dpcr = form.save(commit=False)
-            dpcr.created_by = request.user
-            dpcr.save()
-            
-            targets = target_formset.save(commit=False)
-            for target in targets:
-                target.dpcr = dpcr
-                target.save()
-            messages.success(request, "DPCR created successfully.")
-            return redirect('core:dpcr_management')
-    else:
-        # Default to the user's own division
-        form = DPCRForm(initial={'rating_period': active_period, 'division': employee.division})
-        target_formset = DPCRTargetFormSet(queryset=DPCRTarget.objects.none())
-
-    # Limit the OPCR target choices in the formset
-    for form_item in target_formset:
-        form_item.fields['opcr_target'].queryset = opcr_targets
-
-    context = {
-        'dpcrs': dpcrs,
-        'form': form,
-        'target_formset': target_formset,
-        'active_period': active_period,
-    }
-    return render(request, 'core/dpcr_management.html', context)
+        form = TemplateForm()
+    return render(request, 'core/template_form.html', {'form': form, 'title': 'Create Template'})
 
 @role_required('HRMO')
-def export_dashboard_excel(request):
-    """Export the HRMO compliance dashboard to Excel."""
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    if not active_period:
-        messages.error(request, "No active rating period found.")
-        return redirect('core:dashboard')
-
-    # Create a workbook and add a worksheet
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "IPCR Compliance"
-
-    # Styles
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")
-    center_align = Alignment(horizontal="center", vertical="center")
-
-    # Title
-    ws.merge_cells('A1:H1')
-    ws['A1'] = f"IPCR Submission Monitoring - {active_period.name}"
-    ws['A1'].font = Font(bold=True, size=14)
-    ws['A1'].alignment = center_align
-
-    # Headers
-    headers = ['Division', 'Total Employees', 'Draft', 'Submitted', 'Approved', 'Returned', 'No IPCR', 'Compliance Rate']
-    ws.append([])  # Empty row for spacing
-    ws.append(headers)
+def template_detail(request, template_id):
+    """View a specific Template, showing its Categories, KRAs, and Columns."""
+    template = get_object_or_404(Template, id=template_id)
+    categories = template.categories.all().order_by('order')
+    columns = template.columns.all().order_by('order')
     
-    # Style headers
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=3, column=col_num)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = center_align
+    context = {
+        'template': template,
+        'categories': categories,
+        'columns': columns,
+        'category_form': TemplateCategoryForm(),
+        'column_form': TemplateColumnForm(),
+    }
+    return render(request, 'core/template_detail.html', context)
 
-    # Data
-    for division in Division.objects.all().order_by('name'):
-        employees = Employee.objects.filter(division=division)
-        total = employees.count()
-        ipcrs = IPCR.objects.filter(rating_period=active_period, employee__division=division)
+@role_required('HRMO')
+def add_category(request, template_id):
+    template = get_object_or_404(Template, id=template_id)
+    if request.method == 'POST':
+        form = TemplateCategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.template = template
+            category.save()
+            messages.success(request, "Category added.")
+    return redirect('core:template_detail', template_id=template.id)
 
-        submitted = ipcrs.filter(status='submitted').count()
-        approved = ipcrs.filter(status='approved').count()
-        returned = ipcrs.filter(status='returned').count()
-        draft = ipcrs.filter(status='draft').count()
-        with_ipcr = ipcrs.count()
-        no_ipcr = max(total - with_ipcr, 0)
-        compliance = ((submitted + approved) / total * 100) if total else 0
+@role_required('HRMO')
+def add_column(request, template_id):
+    template = get_object_or_404(Template, id=template_id)
+    if request.method == 'POST':
+        form = TemplateColumnForm(request.POST)
+        if form.is_valid():
+            column = form.save(commit=False)
+            column.template = template
+            column.save()
+            messages.success(request, "Column added.")
+    return redirect('core:template_detail', template_id=template.id)
 
-        ws.append([
-            f"{division.code} - {division.name}",
-            total, draft, submitted, approved, returned, no_ipcr, f"{round(compliance, 1)}%"
-        ])
-
-    # Auto-adjust column widths (Safely handling merged cells)
-    from openpyxl.utils import get_column_letter
-    for i, col in enumerate(ws.columns, 1):
-        max_length = 0
-        for cell in col:
-            try:
-                if cell.value and len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except AttributeError:
-                pass # Skip MergedCells
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[get_column_letter(i)].width = adjusted_width
-
-    # Return response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="IPCR_Compliance_{active_period.name.replace(" ", "_")}.xlsx"'
-    wb.save(response)
-    return response
+@role_required('HRMO')
+def add_kra(request, category_id):
+    category = get_object_or_404(TemplateCategory, id=category_id)
+    if request.method == 'POST':
+        form = TemplateKRAForm(request.POST)
+        if form.is_valid():
+            kra = form.save(commit=False)
+            kra.category = category
+            kra.save()
+            messages.success(request, "KRA added.")
+            return redirect('core:template_detail', template_id=category.template.id)
+    return redirect('core:template_detail', template_id=category.template.id)

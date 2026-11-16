@@ -2,12 +2,7 @@ from functools import wraps
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 
-
 def role_required(*role_names):
-    """
-    Restrict a view to users who belong to at least one of the given roles.
-    Superusers always pass.
-    """
     def decorator(view_func):
         @wraps(view_func)
         @login_required

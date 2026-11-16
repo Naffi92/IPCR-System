@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ template.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Manage: {{ template.name }}</h2>
+    <a href="{% url 'core:template_dashboard' %}" class="btn btn-secondary">&larr; Back to Templates</a>
+</div>
+
+<div class="row">
+    <!-- Left Side: Categories & KRAs -->
+    <div class="col-md-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">Categories & KRAs</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'core:add_category' template.id %}" class="row g-2 mb-4">
+                    {% csrf_token %}
+                    <div class="col-md-4">
+                        <label class="small fw-bold">Category Name</label>
+                        {{ category_form.name }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Weight %</label>
+                        {{ category_form.weight_percentage }}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold">Order</label>
+                        {{ category_form.order }}
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100">Add Category</button>
+                    </div>
+                </form>
+
+                <hr>
+
+                {% for category in categories %}
+                <div class="border rounded p-3 mb-3 bg-light">
+                    <div class="d-flex justify-content-between">
+                        <h5><strong>{{ category.name }}</strong> ({{ category.weight_percentage }}%)</h5>
+                    </div>
+                    
+                    <ul class="list-group mt-2">
+                        {% for kra in category.kras.all %}
+                            <li class="list-group-item">{{ kra.name }}</li>
+                        {% empty %}
+                            <li class="list-group-item text-muted small">No KRAs added yet.</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <form method="post" action="{% url 'core:add_kra' category.id %}" class="row g-2 mt-3">
+                        {% csrf_token %}
+                        <div class="col-md-8">
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Enter KRA name..." required>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="number" name="order" class="form-control form-control-sm" placeholder="Order" value="1">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-sm btn-outline-success w-100">+ KRA</button>
+                        </div>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="text-muted">No categories added yet. Use the form above to add one.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Side: Columns -->
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">Form Columns (Fields)</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'core:add_column' template.id %}" class="mb-4">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="small fw-bold">Column Name</label>
+                        {{ column_form.name }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Phase Availability</label>
+                        {{ column_form.phase_availability }}
+                    </div>
+                    <div class="mb-2 form-check ms-2">
+                        {{ column_form.is_required }}
+                        <label class="form-check-label small fw-bold">Required Field</label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Order</label>
+                        {{ column_form.order }}
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Add Column</button>
+                </form>
+
+                <ul class="list-group">
+                    {% for col in columns %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ col.name }}</strong><br>
+                            <small class="text-muted">{{ col.get_phase_availability_display }}</small>
+                        </div>
+                        {% if col.is_required %}
+                            <span class="badge bg-danger">Required</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Optional</span>
+                        {% endif %}
+                    </li>
+                    {% empty %}
+                    <li class="list-item text-muted">No columns added yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
