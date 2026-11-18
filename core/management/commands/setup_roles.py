@@ -2,53 +2,45 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from core.models import (
-    RatingPeriod, Division, Employee, OPCR, OPCRTarget,
-    DPCR, DPCRTarget, IPCR, IPCRTarget,
-    BehavioralDimension, BehavioralRating,
-    CriticalIncident, CoachingJournal,
+    Office, Position, Employee, RatingPeriod, Template, TemplateCategory, 
+    TemplateGoal, TemplateKRA, TemplateColumn, AdjectivalMatrix, PositionCategoryWeight, 
+    IPCR, IPCRRow, OPCR, DPCR, AuditTrail, Notification
 )
-
 
 ROLE_PERMISSIONS = {
     'HRMO': {
-        'view': [RatingPeriod, Division, Employee, OPCR, DPCR, IPCR,
-                 BehavioralDimension, BehavioralRating,
-                 CriticalIncident, CoachingJournal],
-        'add': [RatingPeriod, Division, Employee, OPCR, DPCR, IPCR,
-                BehavioralDimension, BehavioralRating,
-                CriticalIncident, CoachingJournal],
-        'change': [RatingPeriod, Division, Employee, OPCR, DPCR, IPCR,
-                   BehavioralDimension, BehavioralRating,
-                   CriticalIncident, CoachingJournal],
-        'delete': [RatingPeriod, Division, Employee, IPCR, BehavioralDimension],
+        'view': [Office, Position, Employee, RatingPeriod, Template, TemplateCategory, 
+                 TemplateGoal, TemplateKRA, TemplateColumn, AdjectivalMatrix, PositionCategoryWeight, 
+                 IPCR, IPCRRow, OPCR, DPCR, AuditTrail, Notification],
+        'add': [Office, Position, Employee, RatingPeriod, Template, TemplateCategory, 
+                TemplateGoal, TemplateKRA, TemplateColumn, AdjectivalMatrix, PositionCategoryWeight, 
+                IPCR, IPCRRow, OPCR, DPCR, AuditTrail, Notification],
+        'change': [Office, Position, Employee, RatingPeriod, Template, TemplateCategory, 
+                   TemplateGoal, TemplateKRA, TemplateColumn, AdjectivalMatrix, PositionCategoryWeight, 
+                   IPCR, IPCRRow, OPCR, DPCR, AuditTrail, Notification],
+        'delete': [Template, TemplateCategory, TemplateGoal, TemplateKRA, TemplateColumn, 
+                   AdjectivalMatrix, PositionCategoryWeight, IPCR, IPCRRow, OPCR, DPCR, Notification],
     },
     'Division Head': {
-        'view': [Employee, OPCR, OPCRTarget, DPCR, DPCRTarget, IPCR,
-                 IPCRTarget, CriticalIncident, CoachingJournal],
-        'add': [DPCR, DPCRTarget, CriticalIncident, CoachingJournal],
-        'change': [DPCR, DPCRTarget, IPCR, IPCRTarget,
-                   CriticalIncident, CoachingJournal],
+        'view': [Employee, Template, IPCR, IPCRRow, OPCR, DPCR, AuditTrail],
+        'add': [AuditTrail],
+        'change': [IPCR, OPCR, DPCR],
     },
     'Rater': {
-        'view': [IPCR, IPCRTarget, BehavioralRating,
-                 CriticalIncident, CoachingJournal],
-        'add': [BehavioralRating, CriticalIncident, CoachingJournal],
-        'change': [IPCR, IPCRTarget, BehavioralRating,
-                   CriticalIncident, CoachingJournal],
+        'view': [Employee, IPCR, IPCRRow, AuditTrail],
+        'add': [AuditTrail],
+        'change': [IPCR, IPCRRow],
     },
     'Ratee': {
-        'view': [IPCR, IPCRTarget, BehavioralRating,
-                 CriticalIncident, CoachingJournal],
-        'add': [IPCRTarget],
-        'change': [IPCRTarget],
+        'view': [Template, IPCR, IPCRRow, AuditTrail],
+        'add': [IPCRRow, AuditTrail],
+        'change': [IPCRRow],
     },
     'Agency Head': {
-        'view': [RatingPeriod, Division, Employee, OPCR, OPCRTarget,
-                 DPCR, DPCRTarget, IPCR, IPCRTarget],
-        'change': [OPCR, OPCRTarget],
+        'view': [RatingPeriod, Office, Employee, OPCR, DPCR, IPCR, AuditTrail],
+        'change': [OPCR, DPCR],
     },
 }
-
 
 class Command(BaseCommand):
     help = 'Create default role groups and assign permissions.'
@@ -64,17 +56,11 @@ class Command(BaseCommand):
                     ct = ContentType.objects.get_for_model(model)
                     codename = f'{action_type}_{model._meta.model_name}'
                     try:
-                        perm = Permission.objects.get(
-                            content_type=ct, codename=codename
-                        )
+                        perm = Permission.objects.get(content_type=ct, codename=codename)
                         group.permissions.add(perm)
                     except Permission.DoesNotExist:
-                        self.stdout.write(self.style.WARNING(
-                            f'Missing permission: {codename}'
-                        ))
+                        self.stdout.write(self.style.WARNING(f'Missing permission: {codename}'))
 
-            self.stdout.write(self.style.SUCCESS(
-                f'{action} group: {role_name} ({group.permissions.count()} perms)'
-            ))
+            self.stdout.write(self.style.SUCCESS(f'{action} group: {role_name} ({group.permissions.count()} perms)'))
 
         self.stdout.write(self.style.SUCCESS('Role groups setup complete.'))
