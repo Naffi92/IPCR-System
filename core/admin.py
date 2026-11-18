@@ -1,8 +1,8 @@
 from django.contrib import admin
 from .models import (
     Office, Position, Employee, RatingPeriod, Template, TemplateCategory, 
-    TemplateKRA, TemplateColumn, AdjectivalMatrix, IPCR, IPCRRow, OPCR, DPCR, 
-    AuditTrail, Notification
+    TemplateGoal, TemplateKRA, TemplateColumn, AdjectivalMatrix, PositionCategoryWeight, 
+    IPCR, IPCRRow, OPCR, DPCR, AuditTrail, Notification
 )
 
 @admin.register(Office)
@@ -27,15 +27,23 @@ class TemplateAdmin(admin.ModelAdmin):
 
 @admin.register(TemplateCategory)
 class TemplateCategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'template', 'weight_percentage')
+    list_display = ('name', 'template', 'default_weight') # FIXED
+
+@admin.register(TemplateGoal)
+class TemplateGoalAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category')
 
 @admin.register(TemplateKRA)
 class TemplateKRAAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category')
+    list_display = ('name', 'goal') # FIXED
 
 @admin.register(TemplateColumn)
 class TemplateColumnAdmin(admin.ModelAdmin):
     list_display = ('name', 'template', 'phase_availability', 'is_required')
+
+@admin.register(PositionCategoryWeight)
+class PositionCategoryWeightAdmin(admin.ModelAdmin):
+    list_display = ('position', 'category', 'weight_percentage')
 
 @admin.register(AdjectivalMatrix)
 class AdjectivalMatrixAdmin(admin.ModelAdmin):

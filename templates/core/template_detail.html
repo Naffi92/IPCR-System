@@ -8,107 +8,95 @@
 </div>
 
 <div class="row">
-    <!-- Left Side: Categories & KRAs -->
-    <div class="col-md-7">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">Categories & KRAs</div>
+    <!-- LEFT SIDE: Categories, Goals, KRAs -->
+    <div class="col-md-8">
+        <!-- Add Category Form -->
+        <div class="card shadow-sm mb-4 border-primary">
+            <div class="card-header bg-primary text-white">1. Add Category (Instruction, Research, GOALS, etc.)</div>
             <div class="card-body">
-                <form method="post" action="{% url 'core:add_category' template.id %}" class="row g-2 mb-4">
+                <form method="post" action="{% url 'core:add_category' template.id %}" class="row g-2">
                     {% csrf_token %}
-                    <div class="col-md-4">
-                        <label class="small fw-bold">Category Name</label>
-                        {{ category_form.name }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="small fw-bold">Weight %</label>
-                        {{ category_form.weight_percentage }}
-                    </div>
-                    <div class="col-md-2">
-                        <label class="small fw-bold">Order</label>
-                        {{ category_form.order }}
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-success w-100">Add Category</button>
-                    </div>
+                    <div class="col-md-5">{{ category_form.name }}</div>
+                    <div class="col-md-3">{{ category_form.default_weight }}</div>
+                    <div class="col-md-2">{{ category_form.order }}</div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Add</button></div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span>1. Add Category (Instruction, Research, GOALS, etc.)</span>
+            <span class="badge {% if remaining_weight == 0 %}bg-success{% elif remaining_weight < 0 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                Total Weight: {{ total_weight }}% | Remaining: {{ remaining_weight }}%
+            </span>
+        </div>
+        <div class="card-body">
+            <!-- Keep the existing form here -->
+
+        <!-- Display Categories -->
+        {% for category in categories %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between">
+                <strong>{{ category.name }} ({{ category.default_weight }}%)</strong>
+            </div>
+            <div class="card-body bg-light">
+                
+                <!-- Add Goal Form -->
+                <form method="post" action="{% url 'core:add_goal' category.id %}" class="row g-2 mb-3">
+                    {% csrf_token %}
+                    <div class="col-md-7"><input type="text" name="name" class="form-control form-control-sm" placeholder="Add Goal (e.g., Goal 1: Strengthen Quality...)" required></div>
+                    <div class="col-md-3"><input type="number" name="order" class="form-control form-control-sm" value="1"></div>
+                    <div class="col-md-2"><button type="submit" class="btn btn-sm btn-success w-100">+ Goal</button></div>
                 </form>
 
-                <hr>
-
-                {% for category in categories %}
-                <div class="border rounded p-3 mb-3 bg-light">
-                    <div class="d-flex justify-content-between">
-                        <h5><strong>{{ category.name }}</strong> ({{ category.weight_percentage }}%)</h5>
-                    </div>
+                <!-- Display Goals under this Category -->
+                {% for goal in category.goals.all %}
+                <div class="border rounded p-3 mb-3 bg-white">
+                    <h6 class="fw-bold text-primary">{{ goal.name }}</h6>
                     
-                    <ul class="list-group mt-2">
-                        {% for kra in category.kras.all %}
-                            <li class="list-group-item">{{ kra.name }}</li>
-                        {% empty %}
-                            <li class="list-group-item text-muted small">No KRAs added yet.</li>
+                    <!-- Display KRAs under this Goal -->
+                    <ul class="list-group mt-2 mb-2">
+                        {% for kra in goal.kras.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ kra.name }}
+                        </li>
                         {% endfor %}
                     </ul>
-                    
-                    <form method="post" action="{% url 'core:add_kra' category.id %}" class="row g-2 mt-3">
+
+                    <!-- Add KRA Form -->
+                    <form method="post" action="{% url 'core:add_kra' goal.id %}" class="row g-2 mt-2">
                         {% csrf_token %}
-                        <div class="col-md-8">
-                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Enter KRA name..." required>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="number" name="order" class="form-control form-control-sm" placeholder="Order" value="1">
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-sm btn-outline-success w-100">+ KRA</button>
-                        </div>
+                        <div class="col-md-9"><input type="text" name="name" class="form-control form-control-sm" placeholder="Add KRA..." required></div>
+                        <div class="col-md-3"><button type="submit" class="btn btn-sm btn-outline-success w-100">+ KRA</button></div>
                     </form>
                 </div>
-                {% empty %}
-                <p class="text-muted">No categories added yet. Use the form above to add one.</p>
                 {% endfor %}
             </div>
         </div>
+        {% empty %}
+        <p class="text-muted">No categories created yet. Add one above.</p>
+        {% endfor %}
     </div>
 
-    <!-- Right Side: Columns -->
-    <div class="col-md-5">
+    <!-- RIGHT SIDE: Form Columns -->
+    <div class="col-md-4">
         <div class="card shadow-sm">
             <div class="card-header bg-dark text-white">Form Columns (Fields)</div>
             <div class="card-body">
                 <form method="post" action="{% url 'core:add_column' template.id %}" class="mb-4">
                     {% csrf_token %}
-                    <div class="mb-2">
-                        <label class="small fw-bold">Column Name</label>
-                        {{ column_form.name }}
-                    </div>
-                    <div class="mb-2">
-                        <label class="small fw-bold">Phase Availability</label>
-                        {{ column_form.phase_availability }}
-                    </div>
-                    <div class="mb-2 form-check ms-2">
-                        {{ column_form.is_required }}
-                        <label class="form-check-label small fw-bold">Required Field</label>
-                    </div>
-                    <div class="mb-2">
-                        <label class="small fw-bold">Order</label>
-                        {{ column_form.order }}
-                    </div>
+                    <div class="mb-2">{{ column_form.name }}</div>
+                    <div class="mb-2">{{ column_form.phase_availability }}</div>
+                    <div class="mb-2 form-check ms-2">{{ column_form.is_required }} <label class="form-check-label small">Required</label></div>
+                    <div class="mb-2">{{ column_form.order }}</div>
                     <button type="submit" class="btn btn-success w-100">Add Column</button>
                 </form>
-
                 <ul class="list-group">
                     {% for col in columns %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ col.name }}</strong><br>
-                            <small class="text-muted">{{ col.get_phase_availability_display }}</small>
-                        </div>
-                        {% if col.is_required %}
-                            <span class="badge bg-danger">Required</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Optional</span>
-                        {% endif %}
+                    <li class="list-group-item">
+                        <strong>{{ col.name }}</strong><br>
+                        <small class="text-muted">{{ col.get_phase_availability_display }}</small>
                     </li>
-                    {% empty %}
-                    <li class="list-item text-muted">No columns added yet.</li>
                     {% endfor %}
                 </ul>
             </div>

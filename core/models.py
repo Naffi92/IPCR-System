@@ -63,30 +63,43 @@ class Template(models.Model):
         return self.name
 
 class TemplateCategory(models.Model):
+    """The math buckets: Instruction, Research, GOALS, CORE, SUPPORT"""
     template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='categories')
-    name = models.CharField(max_length=100) # e.g., GOALS, CORE, SUPPORT, Instruction
-    weight_percentage = models.DecimalField(max_digits=5, decimal_places=2) # e.g., 60.00
+    name = models.CharField(max_length=100) 
+    default_weight = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Default weight (e.g., 55.00). Overridden by Position if applicable.")
     order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"{self.name} ({self.weight_percentage}%)"
+        return f"{self.name} ({self.default_weight}%)"
+
+class TemplateGoal(models.Model):
+    """Visual headers under a category (e.g., Goal 1: Strengthen Quality)"""
+    category = models.ForeignKey(TemplateCategory, on_delete=models.CASCADE, related_name='goals', null=True, blank=True) # <-- ADDED null=True, blank=True
+    name = models.CharField(max_length=250)
+    order = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.name} (Under {self.category.name if self.category else 'No Category'})"
+
 
 class TemplateKRA(models.Model):
-    category = models.ForeignKey(TemplateCategory, on_delete=models.CASCADE, related_name='kras')
-    name = models.CharField(max_length=250) # e.g., Curriculum Development
+    """Key Result Areas under a Goal"""
+    goal = models.ForeignKey(TemplateGoal, on_delete=models.CASCADE, related_name='kras', null=True, blank=True) # <-- ADDED null=True, blank=True
+    name = models.CharField(max_length=250) 
     order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (Under {self.goal.name if self.goal else 'No Goal'})"
 
 class TemplateColumn(models.Model):
+    """The actual table columns (MFO, Success Indicator, Actual, Q, E, T)"""
     PHASE_CHOICES = [
         ('Target', 'Target Phase Only'),
         ('Accomplishment', 'Accomplishment Phase Only'),
         ('Both', 'Both Phases')
     ]
     template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='columns')
-    name = models.CharField(max_length=100) # e.g., MFO, Success Indicator, Actual Accomplishment
+    name = models.CharField(max_length=100) 
     phase_availability = models.CharField(max_length=20, choices=PHASE_CHOICES, default='Both')
     is_required = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
@@ -94,11 +107,23 @@ class TemplateColumn(models.Model):
     def __str__(self):
         return f"{self.name} ({self.phase_availability})"
 
+class PositionCategoryWeight(models.Model):
+    """Overrides the default weight for specific positions (e.g., Professor gets 25% in Instruction)"""
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name='category_weights')
+    category = models.ForeignKey(TemplateCategory, on_delete=models.CASCADE, related_name='position_weights')
+    weight_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+
+    class Meta:
+        unique_together = ('position', 'category')
+
+    def __str__(self):
+        return f"{self.position.name} - {self.category.name}: {self.weight_percentage}%"
+
 class AdjectivalMatrix(models.Model):
     template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='adjectival_ratings')
     min_score = models.DecimalField(max_digits=3, decimal_places=2)
     max_score = models.DecimalField(max_digits=3, decimal_places=2)
-    label = models.CharField(max_length=50) # e.g., Outstanding
+    label = models.CharField(max_length=50) 
 
     def __str__(self):
         return f"{self.label} ({self.min_score} - {self.max_score})"
