@@ -25,10 +25,10 @@ class TemplateCategoryForm(forms.ModelForm):
 class TemplateKRAForm(forms.ModelForm):
     class Meta:
         model = TemplateKRA
-        fields = ['name', 'order']
+        fields = ['name']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            # 'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
 class TemplateColumnForm(forms.ModelForm):
