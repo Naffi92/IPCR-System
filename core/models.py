@@ -160,9 +160,10 @@ class BaseDocument(models.Model):
 
 class IPCR(BaseDocument):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='ipcrs')
+    template = models.ForeignKey(Template, on_delete=models.SET_NULL, null=True) # <-- ADDED
     
     # Manual Assignments (Validated by System)
-    target_approver = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='target_approvals')
+    target_approver = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='target_approvals')
     assessed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='assessments')
     final_rater = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name='final_ratings')
 

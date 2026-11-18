@@ -2,91 +2,43 @@
 {% block title %}My IPCR{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center;">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h2>My IPCR - {{ active_period.name }}</h2>
-    <div>
-        {% if ipcr.status == 'draft' %}
-            <a href="{% url 'core:add_target' %}" style="background: #003366; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">+ Add Target</a>
-            
-            <form method="post" action="{% url 'core:submit_ipcr' %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" style="background: #28a745; color: white; padding: 9px 16px; border: none; border-radius: 4px; cursor: pointer;" onclick="return confirm('Are you sure you want to submit? You cannot edit after this.');">Submit for Approval</button>
-            </form>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <p><strong>Status:</strong> <span class="badge bg-primary">{{ ipcr.status }}</span></p>
+        <p><strong>Template:</strong> {{ template.name|default:"No Template Assigned" }}</p>
+        
+        {% if is_target_phase %}
+            <div class="alert alert-success">The <strong>Target Phase</strong> is currently open. You can add your targets.</div>
+        {% elif is_accomplishment_phase %}
+            <div class="alert alert-warning">The <strong>Accomplishment Phase</strong> is currently open. You can add your actual achievements.</div>
         {% else %}
-            <!-- Show PDF button for any status that is NOT draft (submitted, approved, appraised) -->
-            <a href="{% url 'core:export_ipcr_pdf' ipcr.id %}" target="_blank" style="background: #dc3545; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">Download PDF</a>
+            <div class="alert alert-danger">No active phase right now. Please check the Rating Period dates.</div>
         {% endif %}
     </div>
 </div>
 
-<div class="card">
-    <p><strong>Status:</strong> 
-        {% if ipcr.status == 'draft' %}<span class="badge badge-gray">Draft</span>
-        {% elif ipcr.status == 'submitted' %}<span class="badge badge-yellow">Submitted</span>
-        {% elif ipcr.status == 'approved' %}<span class="badge badge-green">Approved</span>
-        {% elif ipcr.status == 'returned' %}<span class="badge badge-red">Returned for Revision</span>
-        {% elif ipcr.status == 'appraised' %}<span class="badge badge-green">Appraised (Scored)</span> <!-- ADD THIS -->
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">My Targets</div>
+    <div class="card-body">
+        {% if rows %}
+            <ul>
+                {% for row in rows %}
+                    <li>{{ row.kra.name }} - {{ row.dynamic_data }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">You haven't added any targets yet.</p>
         {% endif %}
-    </p>
-    <p><strong>Total Weight:</strong> {{ total_weight }}% / 100%</p>
-    {% if total_weight > 100 %}
-        <p style="color: red; font-weight: bold;">Warning: Total weight exceeds 100%. Please adjust your targets.</p>
-    {% elif total_weight < 100 and targets %}
-        <p style="color: #856404; font-weight: bold;">Note: Total weight is under 100%.</p>
-    {% endif %}
-    {% if ipcr.status == 'appraised' or ipcr.status == 'approved' %}
-        <p style="font-size: 20px; color: #003366;">
-            <strong>Final Rating:</strong> {{ ipcr.final_rating|default:"Pending" }} / 5.00
-        </p>
-    {% endif %}
-</div>
-
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Output / Target</th>
-                <th>Weight</th>
-                <th>Q/E/T Targets</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for target in targets %}
-            <tr>
-                <td>
-                    <strong>{{ target.output }}</strong><br>
-                    {% if target.dpcr_target %}
-                        <small style="color: #666;">Linked to DPCR: {{ target.dpcr_target.output }}</small>
-                    {% else %}
-                        <small style="color: red;">⚠ Orphan (Not linked to DPCR)</small>
-                    {% endif %}
-                </td>
-                <td>{{ target.weight }}%</td>
-                <td>
-                    <div style="font-size: 12px;">
-                        <strong>Q:</strong> {{ target.quality_target|default:"—" }}<br>
-                        <strong>E:</strong> {{ target.efficiency_target|default:"—" }}<br>
-                        <strong>T:</strong> {{ target.timeliness_target|default:"—" }}
-                    </div>
-                </td>
-                <td>
-                    {% if ipcr.status == 'draft' %}
-                        <a href="{% url 'core:edit_target' target.id %}" style="color: #003366; margin-right: 10px;">Edit</a>
-                        <a href="{% url 'core:delete_target' target.id %}" style="color: red;">Delete</a>
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" style="text-align: center; padding: 20px; color: #666;">
-                    No targets added yet. Click "+ Add Target" to begin.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    </div>
 </div>
 {% endblock %}

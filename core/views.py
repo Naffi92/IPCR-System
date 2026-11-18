@@ -10,6 +10,8 @@ from .forms import (
 )
 from .forms import RatingPeriodForm, PositionCategoryWeightForm
 from .models import RatingPeriod, PositionCategoryWeight, Position
+from django.utils import timezone
+from .models import IPCR, IPCRRow
 
 # --- HOME & DASHBOARD ---
 @login_required
@@ -202,3 +204,47 @@ def position_matrix(request, template_id):
         'matrix_data': matrix_data,
     }
     return render(request, 'core/position_matrix.html', context)
+
+@login_required
+def my_ipcr(request):
+    """Ratee view: Create/View their IPCR."""
+    try:
+        employee = request.user.employee
+    except Employee.DoesNotExist:
+        messages.error(request, "Your account is not linked to an Employee profile.")
+        return redirect('core:home')
+
+    # Find active rating period
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    if not active_period:
+        messages.warning(request, "There is no active rating period.")
+        return render(request, 'core/ipcr_unavailable.html')
+
+    # Check if we are in the Target Phase
+    today = timezone.now().date()
+    is_target_phase = active_period.target_start <= today <= active_period.target_end
+    is_accomplishment_phase = active_period.accomplishment_start <= today <= active_period.accomplishment_end
+
+    # Get or Create IPCR for this user and period
+    # For now, we default to the Faculty template if they are Faculty, else Staff
+    template_type = employee.position.type if employee.position else 'Staff'
+    default_template = Template.objects.filter(evaluation_type=template_type).first()
+
+    ipcr, created = IPCR.objects.get_or_create(
+        employee=employee,
+        rating_period=active_period,
+        defaults={'template': default_template, 'status': 'Draft'}
+    )
+
+    # Get existing rows
+    rows = ipcr.rows.all()
+
+    context = {
+        'ipcr': ipcr,
+        'active_period': active_period,
+        'is_target_phase': is_target_phase,
+        'is_accomplishment_phase': is_accomplishment_phase,
+        'rows': rows,
+        'template': ipcr.template,
+    }
+    return render(request, 'core/my_ipcr.html', context)

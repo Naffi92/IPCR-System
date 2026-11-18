@@ -33,4 +33,6 @@ urlpatterns = [
 
     # Position Matrix
     path('templates/<int:template_id>/matrix/', views.position_matrix, name='position_matrix'),
+
+    path('my-ipcr/', views.my_ipcr, name='my_ipcr'),
 ]
