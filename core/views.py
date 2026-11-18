@@ -12,6 +12,10 @@ from .forms import RatingPeriodForm, PositionCategoryWeightForm
 from .models import RatingPeriod, PositionCategoryWeight, Position
 from django.utils import timezone
 from .models import IPCR, IPCRRow
+from .models import (
+    Template, TemplateCategory, TemplateGoal, TemplateKRA, TemplateColumn,
+    RatingPeriod, PositionCategoryWeight, Position, IPCR, IPCRRow, Employee
+)
 
 # --- HOME & DASHBOARD ---
 @login_required
