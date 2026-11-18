@@ -178,15 +178,21 @@ def position_matrix(request, template_id):
         matrix_data.append({'position': pos, 'weights': pos_weights})
         
     if request.method == 'POST':
-        # Save the matrix
+        # Save the matrix safely
         for pos in positions:
             for cat in categories:
                 field_name = f"weight_{pos.id}_{cat.id}"
                 val = request.POST.get(field_name)
-                if val is not None:
-                    weight_obj, _ = PositionCategoryWeight.objects.get_or_create(position=pos, category=cat)
-                    weight_obj.weight_percentage = val
-                    weight_obj.save()
+                
+                # If the user entered a value, convert to float, else default to 0.00
+                weight_val = float(val) if val else 0.00
+                
+                # update_or_create prevents the IntegrityError
+                PositionCategoryWeight.objects.update_or_create(
+                    position=pos, 
+                    category=cat,
+                    defaults={'weight_percentage': weight_val}
+                )
         messages.success(request, "Position Matrix updated.")
         return redirect('core:template_dashboard')
 
