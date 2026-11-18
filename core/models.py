@@ -55,12 +55,18 @@ class RatingPeriod(models.Model):
         return self.name
 
 class Template(models.Model):
+    EVALUATION_TYPES = [
+        ('Faculty', 'Faculty (Position Matrix)'),
+        ('Staff', 'Staff (80/20 Split)')
+    ]
     name = models.CharField(max_length=150)
     description = models.TextField(blank=True)
+    evaluation_type = models.CharField(max_length=20, choices=EVALUATION_TYPES, default='Faculty') # <-- ADD THIS
     applicable_to = models.CharField(max_length=20, choices=[('Faculty', 'Faculty'), ('Staff', 'Staff')])
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.evaluation_type})"
+
 
 class TemplateCategory(models.Model):
     """The math buckets: Instruction, Research, GOALS, CORE, SUPPORT"""

@@ -8,6 +8,8 @@ from .models import (
 from .forms import (
     TemplateForm, TemplateCategoryForm, TemplateGoalForm, TemplateKRAForm, TemplateColumnForm
 )
+from .forms import RatingPeriodForm, PositionCategoryWeightForm
+from .models import RatingPeriod, PositionCategoryWeight, Position
 
 # --- HOME & DASHBOARD ---
 @login_required
@@ -139,3 +141,58 @@ def delete_column(request, column_id):
         column.delete()
         messages.success(request, "Column deleted.")
     return redirect('core:template_detail', template_id=template_id)
+
+# --- RATING PERIOD VIEWS ---
+@role_required('HRMO')
+def rating_period_dashboard(request):
+    periods = RatingPeriod.objects.all().order_by('-target_start')
+    return render(request, 'core/rating_period_dashboard.html', {'periods': periods})
+
+@role_required('HRMO')
+def create_rating_period(request):
+    if request.method == 'POST':
+        form = RatingPeriodForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Rating Period created successfully.")
+            return redirect('core:rating_period_dashboard')
+    else:
+        form = RatingPeriodForm()
+    return render(request, 'core/rating_period_form.html', {'form': form, 'title': 'Create Rating Period'})
+
+# --- POSITION MATRIX VIEWS ---
+@role_required('HRMO')
+def position_matrix(request, template_id):
+    template = get_object_or_404(Template, id=template_id)
+    # Get all Faculty positions
+    positions = Position.objects.filter(type='Faculty')
+    categories = template.categories.all()
+    
+    # We will handle the matrix data in the template using a custom loop
+    matrix_data = []
+    for pos in positions:
+        pos_weights = {}
+        for cat in categories:
+            weight = PositionCategoryWeight.objects.filter(position=pos, category=cat).first()
+            pos_weights[cat.id] = weight.weight_percentage if weight else cat.default_weight
+        matrix_data.append({'position': pos, 'weights': pos_weights})
+        
+    if request.method == 'POST':
+        # Save the matrix
+        for pos in positions:
+            for cat in categories:
+                field_name = f"weight_{pos.id}_{cat.id}"
+                val = request.POST.get(field_name)
+                if val is not None:
+                    weight_obj, _ = PositionCategoryWeight.objects.get_or_create(position=pos, category=cat)
+                    weight_obj.weight_percentage = val
+                    weight_obj.save()
+        messages.success(request, "Position Matrix updated.")
+        return redirect('core:template_dashboard')
+
+    context = {
+        'template': template,
+        'categories': categories,
+        'matrix_data': matrix_data,
+    }
+    return render(request, 'core/position_matrix.html', context)

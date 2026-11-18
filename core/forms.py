@@ -1,6 +1,7 @@
 from django import forms
 from .models import Template, TemplateCategory, TemplateKRA, TemplateColumn
 from .models import TemplateGoal, TemplateCategory
+from .models import RatingPeriod, PositionCategoryWeight
 
 class TemplateForm(forms.ModelForm):
     class Meta:
@@ -84,11 +85,26 @@ class TemplateGoalForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
-class TemplateKRAForm(forms.ModelForm):
+class RatingPeriodForm(forms.ModelForm):
     class Meta:
-        model = TemplateKRA
-        fields = ['name', 'order']
+        model = RatingPeriod
+        fields = ['name', 'target_start', 'target_end', 'midyear_date', 'accomplishment_start', 'accomplishment_end', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'target_start': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'target_end': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'midyear_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'accomplishment_start': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'accomplishment_end': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class PositionCategoryWeightForm(forms.ModelForm):
+    class Meta:
+        model = PositionCategoryWeight
+        fields = ['position', 'category', 'weight_percentage']
+        widgets = {
+            'position': forms.Select(attrs={'class': 'form-control'}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
+            'weight_percentage': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }

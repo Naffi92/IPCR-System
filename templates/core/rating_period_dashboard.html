@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Rating Periods{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Rating Periods</h2>
+    <a href="{% url 'core:create_rating_period' %}" class="btn btn-primary">+ Create New Period</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Target Phase</th>
+                    <th>Accomplishment Phase</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for period in periods %}
+                <tr>
+                    <td><strong>{{ period.name }}</strong></td>
+                    <td>{{ period.target_start }} to {{ period.target_end }}</td>
+                    <td>{{ period.accomplishment_start }} to {{ period.accomplishment_end }}</td>
+                    <td>
+                        {% if period.is_active %}<span class="badge bg-success">Active</span>
+                        {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center">No Rating Periods created yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

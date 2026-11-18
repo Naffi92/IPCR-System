@@ -26,4 +26,11 @@ urlpatterns = [
     # Columns
     path('templates/<int:template_id>/add-column/', views.add_column, name='add_column'),
     path('columns/<int:column_id>/delete/', views.delete_column, name='delete_column'),
+
+    # Rating Periods
+    path('rating-periods/', views.rating_period_dashboard, name='rating_period_dashboard'),
+    path('rating-periods/create/', views.create_rating_period, name='create_rating_period'),
+
+    # Position Matrix
+    path('templates/<int:template_id>/matrix/', views.position_matrix, name='position_matrix'),
 ]

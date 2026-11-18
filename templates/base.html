@@ -31,6 +31,7 @@
                         <li class="nav-item"><a class="nav-link" href="{% url 'core:home' %}">Home</a></li>
                         {% if user.is_superuser or 'HRMO' in user_groups %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'core:template_dashboard' %}">Templates</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'core:rating_period_dashboard' %}">Rating Periods</a></li> <!-- ADD THIS -->
                         {% endif %}
                     {% endif %}
                 </ul>

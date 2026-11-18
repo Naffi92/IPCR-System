@@ -24,6 +24,9 @@
                     <td><span class="badge bg-info text-dark">{{ template.applicable_to }}</span></td>
                     <td>
                         <a href="{% url 'core:template_detail' template.id %}" class="btn btn-sm btn-outline-primary">Manage Template</a>
+                        {% if template.applicable_to == 'Faculty' %}
+                            <a href="{% url 'core:position_matrix' template.id %}" class="btn btn-sm btn-outline-info">Position Matrix</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}
