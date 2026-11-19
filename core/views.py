@@ -16,6 +16,7 @@ from .models import (
     Template, TemplateCategory, TemplateGoal, TemplateKRA, TemplateColumn,
     RatingPeriod, PositionCategoryWeight, Position, IPCR, IPCRRow, Employee
 )
+from django.core.exceptions import ObjectDoesNotExist
 
 # --- HOME & DASHBOARD ---
 @login_required
@@ -214,9 +215,10 @@ def my_ipcr(request):
     """Ratee view: Create/View their IPCR."""
     try:
         employee = request.user.employee
-    except Employee.DoesNotExist:
-        messages.error(request, "Your account is not linked to an Employee profile.")
+    except ObjectDoesNotExist: # <-- FIXED HERE
+        messages.error(request, "Your account is not linked to an Employee profile. Please contact HRMO.")
         return redirect('core:home')
+    # ... rest of the view stays the same
 
     # Find active rating period
     active_period = RatingPeriod.objects.filter(is_active=True).first()
@@ -252,3 +254,45 @@ def my_ipcr(request):
         'template': ipcr.template,
     }
     return render(request, 'core/my_ipcr.html', context)
+
+@role_required('HRMO')
+def edit_rating_period(request, period_id):
+    period = get_object_or_404(RatingPeriod, id=period_id)
+    if request.method == 'POST':
+        form = RatingPeriodForm(request.POST, instance=period)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Rating Period updated.")
+            return redirect('core:rating_period_dashboard')
+    else:
+        form = RatingPeriodForm(instance=period)
+    return render(request, 'core/rating_period_form.html', {'form': form, 'title': 'Edit Rating Period'})
+
+@role_required('HRMO')
+def delete_rating_period(request, period_id):
+    period = get_object_or_404(RatingPeriod, id=period_id)
+    if request.method == 'POST':
+        period.delete()
+        messages.success(request, "Rating Period deleted.")
+    return redirect('core:rating_period_dashboard')
+
+@role_required('HRMO')
+def edit_template(request, template_id):
+    template = get_object_or_404(Template, id=template_id)
+    if request.method == 'POST':
+        form = TemplateForm(request.POST, instance=template)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Template updated.")
+            return redirect('core:template_dashboard')
+    else:
+        form = TemplateForm(instance=template)
+    return render(request, 'core/template_form.html', {'form': form, 'title': 'Edit Template'})
+
+@role_required('HRMO')
+def delete_template(request, template_id):
+    template = get_object_or_404(Template, id=template_id)
+    if request.method == 'POST':
+        template.delete()
+        messages.success(request, "Template deleted.")
+    return redirect('core:template_dashboard')

@@ -16,6 +16,7 @@
                     <th>Target Phase</th>
                     <th>Accomplishment Phase</th>
                     <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,6 +28,13 @@
                     <td>
                         {% if period.is_active %}<span class="badge bg-success">Active</span>
                         {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                    </td>
+                    <td> <!-- ADD THIS BLOCK -->
+                        <a href="{% url 'core:edit_rating_period' period.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="post" action="{% url 'core:delete_rating_period' period.id %}" class="d-inline" onsubmit="return confirm('Delete this Rating Period?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}

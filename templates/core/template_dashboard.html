@@ -24,9 +24,17 @@
                     <td><span class="badge bg-info text-dark">{{ template.applicable_to }}</span></td>
                     <td>
                         <a href="{% url 'core:template_detail' template.id %}" class="btn btn-sm btn-outline-primary">Manage Template</a>
+                        
                         {% if template.applicable_to == 'Faculty' %}
                             <a href="{% url 'core:position_matrix' template.id %}" class="btn btn-sm btn-outline-info">Position Matrix</a>
                         {% endif %}
+                        
+                        <!-- ADD THIS BLOCK -->
+                        <a href="{% url 'core:edit_template' template.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        <form method="post" action="{% url 'core:delete_template' template.id %}" class="d-inline" onsubmit="return confirm('Are you sure? This will delete all Categories, KRAs, and Columns inside it.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}
