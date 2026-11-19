@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Add Target{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Add Target / KRA</h2>
+    <a href="{% url 'core:my_ipcr' %}" class="btn btn-secondary">&larr; Back to My IPCR</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Select KRA -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">Select KRA</label>
+                <select name="kra_id" class="form-select" required>
+                    <option value="">-- Select a KRA from the Template --</option>
+                    {% for category in categories %}
+                        <optgroup label="{{ category.name }}">
+                            {% for goal in category.goals.all %}
+                                {% for kra in goal.kras.all %}
+                                    <option value="{{ kra.id }}">{{ goal.name }} -> {{ kra.name }}</option>
+                                {% endfor %}
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Dynamic Columns -->
+            <h5 class="border-bottom pb-2">Target Details</h5>
+            {% for col in target_columns %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">{{ col.name }} {% if col.is_required %}<span class="text-danger">*</span>{% endif %}</label>
+                    {% if col.name|lower == 'actual accomplishment' %}
+                        <textarea name="col_{{ col.id }}" class="form-control" rows="3" {% if col.is_required %}required{% endif %} disabled placeholder="Available during Accomplishment Phase only"></textarea>
+                    {% else %}
+                        <textarea name="col_{{ col.id }}" class="form-control" rows="2" {% if col.is_required %}required{% endif %}></textarea>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary mt-3">Save Target</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -108,3 +108,16 @@ class PositionCategoryWeightForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'form-control'}),
             'weight_percentage': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }
+
+class TemplateSelectionForm(forms.Form):
+    template = forms.ModelChoiceField(
+        queryset=Template.objects.none(), 
+        empty_label="Select a Template...",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        user_type = kwargs.pop('user_type', None)
+        super().__init__(*args, **kwargs)
+        if user_type:
+            self.fields['template'].queryset = Template.objects.filter(evaluation_type=user_type)

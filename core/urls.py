@@ -39,6 +39,8 @@ urlpatterns = [
     path('rating-periods/<int:period_id>/edit/', views.edit_rating_period, name='edit_rating_period'),
     path('rating-periods/<int:period_id>/delete/', views.delete_rating_period, name='delete_rating_period'),
 
-        path('templates/<int:template_id>/edit/', views.edit_template, name='edit_template'),
+    path('templates/<int:template_id>/edit/', views.edit_template, name='edit_template'),
     path('templates/<int:template_id>/delete/', views.delete_template, name='delete_template'),
+
+    path('my-ipcr/add-row/', views.add_ipcr_row, name='add_ipcr_row'),
 ]

@@ -18,6 +18,9 @@ from .models import (
 )
 from django.core.exceptions import ObjectDoesNotExist
 
+from .forms import TemplateSelectionForm, TemplateColumnForm
+from .models import IPCRRow
+
 # --- HOME & DASHBOARD ---
 @login_required
 def home(request):
@@ -212,37 +215,42 @@ def position_matrix(request, template_id):
 
 @login_required
 def my_ipcr(request):
-    """Ratee view: Create/View their IPCR."""
     try:
         employee = request.user.employee
-    except ObjectDoesNotExist: # <-- FIXED HERE
-        messages.error(request, "Your account is not linked to an Employee profile. Please contact HRMO.")
+    except ObjectDoesNotExist:
+        messages.error(request, "Your account is not linked to an Employee profile.")
         return redirect('core:home')
-    # ... rest of the view stays the same
 
-    # Find active rating period
     active_period = RatingPeriod.objects.filter(is_active=True).first()
     if not active_period:
         messages.warning(request, "There is no active rating period.")
         return render(request, 'core/ipcr_unavailable.html')
 
-    # Check if we are in the Target Phase
     today = timezone.now().date()
     is_target_phase = active_period.target_start <= today <= active_period.target_end
     is_accomplishment_phase = active_period.accomplishment_start <= today <= active_period.accomplishment_end
 
-    # Get or Create IPCR for this user and period
-    # For now, we default to the Faculty template if they are Faculty, else Staff
-    template_type = employee.position.type if employee.position else 'Staff'
-    default_template = Template.objects.filter(evaluation_type=template_type).first()
-
+    # Get or create the IPCR without a template first
     ipcr, created = IPCR.objects.get_or_create(
         employee=employee,
         rating_period=active_period,
-        defaults={'template': default_template, 'status': 'Draft'}
+        defaults={'status': 'Draft'}
     )
 
-    # Get existing rows
+    # Handle Template Selection
+    template_form = None
+    if not ipcr.template:
+        user_type = employee.position.type if employee.position else 'Staff'
+        if request.method == 'POST' and 'select_template' in request.POST:
+            template_form = TemplateSelectionForm(request.POST, user_type=user_type)
+            if template_form.is_valid():
+                ipcr.template = template_form.cleaned_data['template']
+                ipcr.save()
+                messages.success(request, "Template selected successfully.")
+                return redirect('core:my_ipcr')
+        else:
+            template_form = TemplateSelectionForm(user_type=user_type)
+
     rows = ipcr.rows.all()
 
     context = {
@@ -250,10 +258,41 @@ def my_ipcr(request):
         'active_period': active_period,
         'is_target_phase': is_target_phase,
         'is_accomplishment_phase': is_accomplishment_phase,
+        'template_form': template_form,
         'rows': rows,
-        'template': ipcr.template,
     }
     return render(request, 'core/my_ipcr.html', context)
+
+
+@login_required
+def add_ipcr_row(request):
+    try:
+        employee = request.user.employee
+    except ObjectDoesNotExist:
+        return redirect('core:home')
+
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
+    ipcr = get_object_or_404(IPCR, employee=employee, rating_period=active_period)
+
+    if not ipcr.template:
+        messages.error(request, "Please select a Template first.")
+        return redirect('core:my_ipcr')
+
+    if request.method == 'POST':
+        # We will process the dynamic form submission here in the next step
+        pass
+
+    # Get available KRAs for the selected template
+    categories = ipcr.template.categories.all().prefetch_related('goals__kras')
+    # Get available columns for the Target phase
+    target_columns = ipcr.template.columns.filter(phase_availability__in=['Target', 'Both']).order_by('order')
+
+    context = {
+        'ipcr': ipcr,
+        'categories': categories,
+        'target_columns': target_columns,
+    }
+    return render(request, 'core/add_ipcr_row.html', context)
 
 @role_required('HRMO')
 def edit_rating_period(request, period_id):
