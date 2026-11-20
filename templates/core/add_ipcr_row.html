@@ -12,13 +12,13 @@
         <form method="post">
             {% csrf_token %}
             
-            <!-- Select KRA -->
+            <!-- Select KRA (Hierarchical Grouping) -->
             <div class="mb-4">
                 <label class="form-label fw-bold">Select KRA</label>
                 <select name="kra_id" class="form-select" required>
-                    <option value="">-- Select a KRA from the Template --</option>
+                    <option value="">-- Select Category -> Goal -> KRA --</option>
                     {% for category in categories %}
-                        <optgroup label="{{ category.name }}">
+                        <optgroup label="CATEGORY: {{ category.name }}">
                             {% for goal in category.goals.all %}
                                 {% for kra in goal.kras.all %}
                                     <option value="{{ kra.id }}">{{ goal.name }} -> {{ kra.name }}</option>
@@ -34,12 +34,10 @@
             {% for col in target_columns %}
                 <div class="mb-3">
                     <label class="form-label fw-bold">{{ col.name }} {% if col.is_required %}<span class="text-danger">*</span>{% endif %}</label>
-                    {% if col.name|lower == 'actual accomplishment' %}
-                        <textarea name="col_{{ col.id }}" class="form-control" rows="3" {% if col.is_required %}required{% endif %} disabled placeholder="Available during Accomplishment Phase only"></textarea>
-                    {% else %}
-                        <textarea name="col_{{ col.id }}" class="form-control" rows="2" {% if col.is_required %}required{% endif %}></textarea>
-                    {% endif %}
+                    <textarea name="col_{{ col.id }}" class="form-control" rows="2" {% if col.is_required %}required{% endif %}></textarea>
                 </div>
+            {% empty %}
+                <div class="alert alert-warning">No columns are configured for the Target Phase in this Template.</div>
             {% endfor %}
 
             <button type="submit" class="btn btn-primary mt-3">Save Target</button>

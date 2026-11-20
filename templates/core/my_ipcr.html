@@ -44,6 +44,7 @@
     </div>
 </div>
 
+{% if ipcr.template and not template_form %}
 <div class="card shadow-sm">
     <div class="card-header bg-dark text-white">My Targets</div>
     <div class="card-body">
@@ -63,9 +64,18 @@
                     {% for row in rows %}
                     <tr>
                         <td>{{ row.kra.name }}</td>
+                        <!-- We loop through the template columns to find the matching value in the JSON dictionary -->
                         {% for col in ipcr.template.columns.all %}
                             {% if col.phase_availability in 'Target,Both' %}
-                                <td>{{ row.get_dynamic_value|default:"-" }}</td> <!-- We will build this logic next -->
+                                <td>
+                                    {% with val=row.dynamic_data|default_if_none:'' %}
+                                        {% if val|length > 0 %}
+                                            {{ val|get_item:col.name|default:"-" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
                             {% endif %}
                         {% endfor %}
                     </tr>
@@ -77,4 +87,5 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}

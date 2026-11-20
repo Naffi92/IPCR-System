@@ -278,14 +278,30 @@ def add_ipcr_row(request):
         messages.error(request, "Please select a Template first.")
         return redirect('core:my_ipcr')
 
-    if request.method == 'POST':
-        # We will process the dynamic form submission here in the next step
-        pass
-
-    # Get available KRAs for the selected template
-    categories = ipcr.template.categories.all().prefetch_related('goals__kras')
-    # Get available columns for the Target phase
+    # Dynamic fetch: Get columns that apply to the Target phase
     target_columns = ipcr.template.columns.filter(phase_availability__in=['Target', 'Both']).order_by('order')
+
+    if request.method == 'POST':
+        kra_id = request.POST.get('kra_id')
+        if not kra_id:
+            messages.error(request, "You must select a KRA.")
+            return redirect('core:add_ipcr_row')
+            
+        kra = get_object_or_404(TemplateKRA, id=kra_id)
+        
+        # Save dynamic data as JSON
+        dynamic_data = {}
+        for col in target_columns:
+            val = request.POST.get(f'col_{col.id}')
+            if val:
+                dynamic_data[col.name] = val
+                
+        IPCRRow.objects.create(ipcr=ipcr, kra=kra, dynamic_data=dynamic_data)
+        messages.success(request, "Target added successfully.")
+        return redirect('core:my_ipcr')
+
+    # Fetch KRAs for dropdown, grouped by Category and Goal
+    categories = ipcr.template.categories.all().prefetch_related('goals__kras')
 
     context = {
         'ipcr': ipcr,
