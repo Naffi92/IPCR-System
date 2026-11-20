@@ -85,10 +85,26 @@
             <div class="card-body">
                 <form method="post" action="{% url 'core:add_column' template.id %}" class="mb-4">
                     {% csrf_token %}
-                    <div class="mb-2">{{ column_form.name }}</div>
-                    <div class="mb-2">{{ column_form.phase_availability }}</div>
-                    <div class="mb-2 form-check ms-2">{{ column_form.is_required }} <label class="form-check-label small">Required</label></div>
-                    <div class="mb-2">{{ column_form.order }}</div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Column Name</label>
+                        {{ column_form.name }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Phase Availability</label>
+                        {{ column_form.phase_availability }}
+                    </div>
+                    <div class="mb-2"> <!-- ADDED DATA TYPE -->
+                        <label class="small fw-bold">Data Type</label>
+                        {{ column_form.data_type }}
+                    </div>
+                    <div class="mb-2 form-check ms-2">
+                        {{ column_form.is_required }}
+                        <label class="form-check-label small fw-bold">Required Field</label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Order</label>
+                        {{ column_form.order }}
+                    </div>
                     <button type="submit" class="btn btn-success w-100">Add Column</button>
                 </form>
                 <ul class="list-group">

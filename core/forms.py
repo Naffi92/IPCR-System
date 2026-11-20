@@ -35,10 +35,11 @@ class TemplateKRAForm(forms.ModelForm):
 class TemplateColumnForm(forms.ModelForm):
     class Meta:
         model = TemplateColumn
-        fields = ['name', 'phase_availability', 'is_required', 'order']
+        fields = ['name', 'phase_availability', 'data_type', 'is_required', 'order'] # <-- ADDED
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'phase_availability': forms.Select(attrs={'class': 'form-control'}),
+            'data_type': forms.Select(attrs={'class': 'form-control'}), # <-- ADDED
             'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }

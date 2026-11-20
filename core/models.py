@@ -98,20 +98,25 @@ class TemplateKRA(models.Model):
         return f"{self.name} (Under {self.goal.name if self.goal else 'No Goal'})"
 
 class TemplateColumn(models.Model):
-    """The actual table columns (MFO, Success Indicator, Actual, Q, E, T)"""
     PHASE_CHOICES = [
         ('Target', 'Target Phase Only'),
         ('Accomplishment', 'Accomplishment Phase Only'),
         ('Both', 'Both Phases')
     ]
-    template = models.ForeignKey(Template, on_delete=models.CASCADE, related_name='columns')
+    DATA_TYPE_CHOICES = [
+        ('Text', 'Text / Paragraph'),
+        ('Rating', 'Rating (1-5 Numerical)'),
+        ('Number', 'Number (Other)')
+    ]
+    template = models.ForeignKey('Template', on_delete=models.CASCADE, related_name='columns')
     name = models.CharField(max_length=100) 
     phase_availability = models.CharField(max_length=20, choices=PHASE_CHOICES, default='Both')
+    data_type = models.CharField(max_length=20, choices=DATA_TYPE_CHOICES, default='Text') # <-- ADDED
     is_required = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"{self.name} ({self.phase_availability})"
+        return f"{self.name} ({self.data_type} | {self.phase_availability})"
 
 class PositionCategoryWeight(models.Model):
     """Overrides the default weight for specific positions (e.g., Professor gets 25% in Instruction)"""
