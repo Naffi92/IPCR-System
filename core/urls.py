@@ -43,4 +43,9 @@ urlpatterns = [
     path('templates/<int:template_id>/delete/', views.delete_template, name='delete_template'),
 
     path('my-ipcr/add-row/', views.add_ipcr_row, name='add_ipcr_row'),
+
+        # Columns
+    path('templates/<int:template_id>/add-column/', views.add_column, name='add_column'),
+    path('columns/<int:column_id>/edit/', views.edit_column, name='edit_column'), # <-- ADD THIS
+    path('columns/<int:column_id>/delete/', views.delete_column, name='delete_column'),
 ]

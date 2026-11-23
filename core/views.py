@@ -144,6 +144,19 @@ def add_column(request, template_id):
     return redirect('core:template_detail', template_id=template.id)
 
 @role_required('HRMO')
+def edit_column(request, column_id):
+    column = get_object_or_404(TemplateColumn, id=column_id)
+    if request.method == 'POST':
+        form = TemplateColumnEditForm(request.POST, instance=column)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Column updated.")
+            return redirect('core:template_detail', template_id=column.template.id)
+    else:
+        form = TemplateColumnEditForm(instance=column)
+    return render(request, 'core/simple_form.html', {'form': form, 'title': 'Edit Column', 'cancel_url': column.template.id})
+
+@role_required('HRMO')
 def delete_column(request, column_id):
     column = get_object_or_404(TemplateColumn, id=column_id)
     template_id = column.template.id
@@ -266,13 +279,20 @@ def my_ipcr(request):
 
 @login_required
 def add_ipcr_row(request):
-    # ... (Keep the existing code at the top) ...
+    try:
+        employee = request.user.employee
+    except ObjectDoesNotExist:
+        return redirect('core:home')
+
+    active_period = RatingPeriod.objects.filter(is_active=True).first()
     
+    # THIS IS THE MISSING LINE THAT CAUSED THE ERROR
+    ipcr = get_object_or_404(IPCR, employee=employee, rating_period=active_period)
+
     if not ipcr.template:
         messages.error(request, "Please select a Template first.")
         return redirect('core:my_ipcr')
 
-    # Fetch ALL columns for display
     all_columns = ipcr.template.columns.all().order_by('order')
 
     if request.method == 'POST':
@@ -298,7 +318,7 @@ def add_ipcr_row(request):
     context = {
         'ipcr': ipcr,
         'categories': categories,
-        'all_columns': all_columns, # <-- PASS ALL COLUMNS
+        'all_columns': all_columns,
     }
     return render(request, 'core/add_ipcr_row.html', context)
 
