@@ -20,6 +20,10 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from .forms import TemplateSelectionForm, TemplateColumnForm
 from .models import IPCRRow
+from .forms import (
+    TemplateForm, TemplateCategoryForm, TemplateGoalForm, TemplateKRAForm, 
+    TemplateColumnForm, TemplateColumnEditForm, TemplateSelectionForm, RatingPeriodForm
+)
 
 # --- HOME & DASHBOARD ---
 @login_required
