@@ -108,15 +108,20 @@ class TemplateColumn(models.Model):
         ('Rating', 'Rating (1-5 Numerical)'),
         ('Number', 'Number (Other)')
     ]
+    INPUT_BY_CHOICES = [
+        ('Ratee', 'Ratee (Employee)'),
+        ('Rater', 'Rater (Supervisor/Head)')
+    ]
     template = models.ForeignKey('Template', on_delete=models.CASCADE, related_name='columns')
     name = models.CharField(max_length=100) 
     phase_availability = models.CharField(max_length=20, choices=PHASE_CHOICES, default='Both')
-    data_type = models.CharField(max_length=20, choices=DATA_TYPE_CHOICES, default='Text') # <-- ADDED
+    data_type = models.CharField(max_length=20, choices=DATA_TYPE_CHOICES, default='Text')
+    input_by_role = models.CharField(max_length=20, choices=INPUT_BY_CHOICES, default='Ratee') # <-- ADDED
     is_required = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return f"{self.name} ({self.data_type} | {self.phase_availability})"
+        return f"{self.name} ({self.input_by_role} | {self.data_type})"
 
 class PositionCategoryWeight(models.Model):
     """Overrides the default weight for specific positions (e.g., Professor gets 25% in Instruction)"""

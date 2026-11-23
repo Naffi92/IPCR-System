@@ -266,20 +266,14 @@ def my_ipcr(request):
 
 @login_required
 def add_ipcr_row(request):
-    try:
-        employee = request.user.employee
-    except ObjectDoesNotExist:
-        return redirect('core:home')
-
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    ipcr = get_object_or_404(IPCR, employee=employee, rating_period=active_period)
-
+    # ... (Keep the existing code at the top) ...
+    
     if not ipcr.template:
         messages.error(request, "Please select a Template first.")
         return redirect('core:my_ipcr')
 
-    # Dynamic fetch: Get columns that apply to the Target phase
-    target_columns = ipcr.template.columns.filter(phase_availability__in=['Target', 'Both']).order_by('order')
+    # Fetch ALL columns for display
+    all_columns = ipcr.template.columns.all().order_by('order')
 
     if request.method == 'POST':
         kra_id = request.POST.get('kra_id')
@@ -289,9 +283,8 @@ def add_ipcr_row(request):
             
         kra = get_object_or_404(TemplateKRA, id=kra_id)
         
-        # Save dynamic data as JSON
         dynamic_data = {}
-        for col in target_columns:
+        for col in all_columns:
             val = request.POST.get(f'col_{col.id}')
             if val:
                 dynamic_data[col.name] = val
@@ -300,13 +293,12 @@ def add_ipcr_row(request):
         messages.success(request, "Target added successfully.")
         return redirect('core:my_ipcr')
 
-    # Fetch KRAs for dropdown, grouped by Category and Goal
     categories = ipcr.template.categories.all().prefetch_related('goals__kras')
 
     context = {
         'ipcr': ipcr,
         'categories': categories,
-        'target_columns': target_columns,
+        'all_columns': all_columns, # <-- PASS ALL COLUMNS
     }
     return render(request, 'core/add_ipcr_row.html', context)
 

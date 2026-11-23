@@ -35,11 +35,25 @@ class TemplateKRAForm(forms.ModelForm):
 class TemplateColumnForm(forms.ModelForm):
     class Meta:
         model = TemplateColumn
-        fields = ['name', 'phase_availability', 'data_type', 'is_required', 'order'] # <-- ADDED
+        fields = ['name', 'phase_availability', 'data_type', 'input_by_role', 'is_required', 'order']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'phase_availability': forms.Select(attrs={'class': 'form-control'}),
-            'data_type': forms.Select(attrs={'class': 'form-control'}), # <-- ADDED
+            'data_type': forms.Select(attrs={'class': 'form-control'}),
+            'input_by_role': forms.Select(attrs={'class': 'form-control'}), # <-- ADDED
+            'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+class TemplateColumnEditForm(forms.ModelForm):
+    class Meta:
+        model = TemplateColumn
+        fields = ['name', 'phase_availability', 'data_type', 'input_by_role', 'is_required', 'order']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'phase_availability': forms.Select(attrs={'class': 'form-control'}),
+            'data_type': forms.Select(attrs={'class': 'form-control'}),
+            'input_by_role': forms.Select(attrs={'class': 'form-control'}),
             'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }
@@ -53,17 +67,6 @@ class TemplateCategoryEditForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'default_weight': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'order': forms.NumberInput(attrs={'class': 'form-control'}),
-        }
-
-class TemplateColumnEditForm(forms.ModelForm):
-    class Meta:
-        model = TemplateColumn
-        fields = ['name', 'phase_availability', 'is_required', 'order']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'phase_availability': forms.Select(attrs={'class': 'form-control'}),
-            'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 

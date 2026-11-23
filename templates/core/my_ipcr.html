@@ -51,13 +51,11 @@
     <div class="card-body">
         {% if rows %}
             <table class="table table-bordered">
-                <thead>
+                                <thead>
                     <tr>
                         <th>KRA</th>
                         {% for col in ipcr.template.columns.all %}
-                            {% if col.phase_availability in 'Target,Both' %}
-                                <th>{{ col.name }}</th>
-                            {% endif %}
+                            <th>{{ col.name }} <br><small>({{ col.input_by_role }})</small></th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -65,19 +63,12 @@
                     {% for row in rows %}
                     <tr>
                         <td>{{ row.kra.name }}</td>
-                        <!-- We loop through the template columns to find the matching value in the JSON dictionary -->
                         {% for col in ipcr.template.columns.all %}
-                            {% if col.phase_availability in 'Target,Both' %}
-                                <td>
-                                    {% with val=row.dynamic_data|default_if_none:'' %}
-                                        {% if val|length > 0 %}
-                                            {{ val|get_item:col.name|default:"-" }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    {% endwith %}
-                                </td>
-                            {% endif %}
+                            <td>
+                                {% with val=row.dynamic_data|default_if_none:'' %}
+                                    {{ val|get_item:col.name|default:"-" }}
+                                {% endwith %}
+                            </td>
                         {% endfor %}
                     </tr>
                     {% endfor %}

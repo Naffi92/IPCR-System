@@ -30,21 +30,31 @@
             </div>
 
             <!-- Dynamic Columns -->
-            <h5 class="border-bottom pb-2">Target Details</h5>
-            {% for col in target_columns %}
+                        <h5 class="border-bottom pb-2">Target Details</h5>
+            {% for col in all_columns %}
                 <div class="mb-3">
-                    <label class="form-label fw-bold">{{ col.name }} {% if col.is_required %}<span class="text-danger">*</span>{% endif %}</label>
+                    <label class="form-label fw-bold">
+                        {{ col.name }} 
+                        {% if col.is_required %}<span class="text-danger">*</span>{% endif %}
+                        <span class="badge bg-secondary ms-2">{{ col.input_by_role }}</span>
+                    </label>
                     
-                    {% if col.data_type == 'Rating' %}
-                        <input type="number" name="col_{{ col.id }}" class="form-control" min="1" max="5" {% if col.is_required %}required{% endif %} placeholder="Enter a number from 1 to 5">
-                    {% elif col.data_type == 'Number' %}
-                        <input type="number" step="0.01" name="col_{{ col.id }}" class="form-control" {% if col.is_required %}required{% endif %}>
+                    {# Determine if the Ratee can edit this field right now #}
+                    {% if col.input_by_role == 'Rater' %}
+                        <input type="text" class="form-control" disabled placeholder="For Rater input only">
+                    {% elif col.phase_availability == 'Accomplishment' %}
+                        <textarea class="form-control" rows="2" disabled placeholder="Available during Accomplishment Phase"></textarea>
                     {% else %}
-                        <textarea name="col_{{ col.id }}" class="form-control" rows="2" {% if col.is_required %}required{% endif %}></textarea>
+                        {# Render based on data_type #}
+                        {% if col.data_type == 'Rating' %}
+                            <input type="number" name="col_{{ col.id }}" class="form-control" min="1" max="5" {% if col.is_required %}required{% endif %}>
+                        {% elif col.data_type == 'Number' %}
+                            <input type="number" step="0.01" name="col_{{ col.id }}" class="form-control" {% if col.is_required %}required{% endif %}>
+                        {% else %}
+                            <textarea name="col_{{ col.id }}" class="form-control" rows="2" {% if col.is_required %}required{% endif %}></textarea>
+                        {% endif %}
                     {% endif %}
                 </div>
-            {% empty %}
-                <div class="alert alert-warning">No columns are configured for the Target Phase in this Template.</div>
             {% endfor %}
 
             <button type="submit" class="btn btn-primary mt-3">Save Target</button>
