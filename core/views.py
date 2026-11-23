@@ -367,3 +367,17 @@ def delete_template(request, template_id):
         template.delete()
         messages.success(request, "Template deleted.")
     return redirect('core:template_dashboard')
+
+@login_required
+def submit_target(request, ipcr_id):
+    """Ratee submits their targets to the Rater."""
+    ipcr = get_object_or_404(IPCR, id=ipcr_id, employee=request.user.employee)
+    
+    if not ipcr.rows.exists():
+        messages.error(request, "You cannot submit an empty IPCR.")
+        return redirect('core:my_ipcr')
+        
+    ipcr.status = 'Target Submitted'
+    ipcr.save()
+    messages.success(request, "Your targets have been submitted to your supervisor.")
+    return redirect('core:my_ipcr')

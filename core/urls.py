@@ -48,4 +48,6 @@ urlpatterns = [
     path('templates/<int:template_id>/add-column/', views.add_column, name='add_column'),
     path('columns/<int:column_id>/edit/', views.edit_column, name='edit_column'), # <-- ADD THIS
     path('columns/<int:column_id>/delete/', views.delete_column, name='delete_column'),
+
+    path('my-ipcr/<int:ipcr_id>/submit/', views.submit_target, name='submit_target'),
 ]

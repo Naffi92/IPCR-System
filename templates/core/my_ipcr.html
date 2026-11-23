@@ -5,9 +5,12 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>My IPCR - {{ active_period.name }}</h2>
-    {% if ipcr.template and is_target_phase %}
-        <a href="{% url 'core:add_ipcr_row' %}" class="btn btn-primary">+ Add Target / KRA</a>
-    {% endif %}
+    <div>
+        {% if ipcr.template and is_target_phase and ipcr.status == 'Draft' %}
+            <a href="{% url 'core:add_ipcr_row' %}" class="btn btn-primary me-2">+ Add Target</a>
+            <a href="{% url 'core:submit_target' ipcr.id %}" class="btn btn-success" onclick="return confirm('Are you sure? You cannot edit your targets after submitting.');">Submit Targets</a>
+        {% endif %}
+    </div>
 </div>
 
 {% if messages %}
@@ -51,24 +54,34 @@
     <div class="card-body">
         {% if rows %}
             <table class="table table-bordered">
-                                <thead>
+                <thead class="table-light">
                     <tr>
-                        <th>KRA</th>
+                        <th width="5%">#</th>
+                        <th width="25%">Category / Goal / KRA</th>
                         {% for col in ipcr.template.columns.all %}
-                            <th>{{ col.name }} <br><small>({{ col.input_by_role }})</small></th>
+                            {% if col.phase_availability in 'Target,Both' %}
+                                <th>{{ col.name }}</th>
+                            {% endif %}
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in rows %}
                     <tr>
-                        <td>{{ row.kra.name }}</td>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <strong class="text-primary">{{ row.kra.goal.category.name }}</strong><br>
+                            <small class="text-muted">{{ row.kra.goal.name }}</small><br>
+                            <strong>{{ row.kra.name }}</strong>
+                        </td>
                         {% for col in ipcr.template.columns.all %}
-                            <td>
-                                {% with val=row.dynamic_data|default_if_none:'' %}
-                                    {{ val|get_item:col.name|default:"-" }}
-                                {% endwith %}
-                            </td>
+                            {% if col.phase_availability in 'Target,Both' %}
+                                <td>
+                                    {% with val=row.dynamic_data|default_if_none:'' %}
+                                        {{ val|get_item:col.name|default:"-" }}
+                                    {% endwith %}
+                                </td>
+                            {% endif %}
                         {% endfor %}
                     </tr>
                     {% endfor %}
