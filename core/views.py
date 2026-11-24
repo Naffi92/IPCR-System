@@ -238,23 +238,30 @@ def my_ipcr(request):
         messages.error(request, "Your account is not linked to an Employee profile.")
         return redirect('core:home')
 
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    if not active_period:
+    # Get ALL active rating periods, not just the first one
+    active_periods = RatingPeriod.objects.filter(is_active=True).order_by('-target_start')
+    
+    if not active_periods.exists():
         messages.warning(request, "There is no active rating period.")
         return render(request, 'core/ipcr_unavailable.html')
+
+    # Handle period selection via GET or POST
+    selected_period_id = request.POST.get('rating_period') or request.GET.get('period')
+    if selected_period_id:
+        active_period = active_periods.filter(id=selected_period_id).first()
+    else:
+        active_period = active_periods.first() # Default to the most recent
 
     today = timezone.now().date()
     is_target_phase = active_period.target_start <= today <= active_period.target_end
     is_accomplishment_phase = active_period.accomplishment_start <= today <= active_period.accomplishment_end
 
-    # Get or create the IPCR without a template first
     ipcr, created = IPCR.objects.get_or_create(
         employee=employee,
         rating_period=active_period,
         defaults={'status': 'Draft'}
     )
 
-    # Handle Template Selection
     template_form = None
     if not ipcr.template:
         user_type = employee.position.type if employee.position else 'Staff'
@@ -264,15 +271,16 @@ def my_ipcr(request):
                 ipcr.template = template_form.cleaned_data['template']
                 ipcr.save()
                 messages.success(request, "Template selected successfully.")
-                return redirect('core:my_ipcr')
+                return redirect(f"{request.path}?period={active_period.id}")
         else:
             template_form = TemplateSelectionForm(user_type=user_type)
 
     rows = ipcr.rows.all()
-
+    
     context = {
         'ipcr': ipcr,
         'active_period': active_period,
+        'active_periods': active_periods, # Pass all active periods
         'is_target_phase': is_target_phase,
         'is_accomplishment_phase': is_accomplishment_phase,
         'template_form': template_form,

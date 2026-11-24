@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>My IPCR - {{ active_period.name }}</h2>
+    <h2>My IPCR</h2>
     <div>
         {% if ipcr.template and is_target_phase and ipcr.status == 'Draft' %}
             <a href="{% url 'core:add_ipcr_row' %}" class="btn btn-primary me-2">+ Add Target</a>
@@ -19,16 +19,35 @@
     {% endfor %}
 {% endif %}
 
+<!-- Rating Period Selection -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row align-items-end">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Select Active Rating Period</label>
+                <select name="period" class="form-select" onchange="this.form.submit()">
+                    {% for period in active_periods %}
+                        <option value="{{ period.id }}" {% if period.id == active_period.id %}selected{% endif %}>
+                            {{ period.name }} ({{ period.target_start }} to {{ period.target_end }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <p><strong>Status:</strong> <span class="badge bg-primary">{{ ipcr.status }}</span></p>
         
         {% if template_form %}
-            <div class="alert alert-warning">
+            <div class="alert alert-warning mt-3">
                 <h5>Select a Template</h5>
                 <p>Please select the appropriate template for your role to begin.</p>
                 <form method="post">
                     {% csrf_token %}
+                    <input type="hidden" name="rating_period" value="{{ active_period.id }}">
                     <div class="row">
                         <div class="col-md-8">{{ template_form.template }}</div>
                         <div class="col-md-4"><button type="submit" name="select_template" class="btn btn-success w-100">Confirm Template</button></div>
@@ -53,8 +72,8 @@
     <div class="card-header bg-dark text-white">My Targets</div>
     <div class="card-body">
         {% if rows %}
-            <table class="table table-bordered">
-                <thead class="table-light">
+            <table class="table table-bordered table-sm">
+                <thead class="table-light text-center">
                     <tr>
                         <th width="5%">#</th>
                         <th width="25%">Category / Goal / KRA</th>
@@ -66,24 +85,32 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in rows %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>
-                            <strong class="text-primary">{{ row.kra.goal.category.name }}</strong><br>
-                            <small class="text-muted">{{ row.kra.goal.name }}</small><br>
-                            <strong>{{ row.kra.name }}</strong>
-                        </td>
-                        {% for col in ipcr.template.columns.all %}
-                            {% if col.phase_availability in 'Target,Both' %}
-                                <td>
-                                    {% with val=row.dynamic_data|default_if_none:'' %}
-                                        {{ val|get_item:col.name|default:"-" }}
-                                    {% endwith %}
-                                </td>
-                            {% endif %}
+                    {% regroup rows by kra.goal.category.name as category_list %}
+                    {% for category in category_list %}
+                        <tr class="table-secondary">
+                            <td colspan="100"><strong>CATEGORY: {{ category.grouper }}</strong></td>
+                        </tr>
+                        {% regroup category.list by kra.goal.name as goal_list %}
+                        {% for goal in goal_list %}
+                            <tr class="table-info">
+                                <td colspan="100"><em>Goal: {{ goal.grouper }}</em></td>
+                            </tr>
+                            {% for row in goal.list %}
+                            <tr>
+                                <td class="text-center">{{ forloop.counter }}</td>
+                                <td>{{ row.kra.name }}</td>
+                                {% for col in ipcr.template.columns.all %}
+                                    {% if col.phase_availability in 'Target,Both' %}
+                                        <td>
+                                            {% with val=row.dynamic_data|default_if_none:'' %}
+                                                {{ val|get_item:col.name|default:"-" }}
+                                            {% endwith %}
+                                        </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
                         {% endfor %}
-                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
