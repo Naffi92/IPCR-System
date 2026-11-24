@@ -50,4 +50,6 @@ urlpatterns = [
     path('columns/<int:column_id>/delete/', views.delete_column, name='delete_column'),
 
     path('my-ipcr/<int:ipcr_id>/submit/', views.submit_target, name='submit_target'),
+    path('my-ipcr/row/<int:row_id>/delete/', views.delete_ipcr_row, name='delete_ipcr_row'),
+    
 ]

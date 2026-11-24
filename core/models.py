@@ -63,6 +63,7 @@ class Template(models.Model):
     description = models.TextField(blank=True)
     evaluation_type = models.CharField(max_length=20, choices=EVALUATION_TYPES, default='Faculty') # <-- ADD THIS
     applicable_to = models.CharField(max_length=20, choices=[('Faculty', 'Faculty'), ('Staff', 'Staff')])
+    staff_split_percentage = models.PositiveIntegerField(default=80, help_text="The percentage for MFOs (e.g., 80 for 80/20 split).")
     
     def __str__(self):
         return f"{self.name} ({self.evaluation_type})"

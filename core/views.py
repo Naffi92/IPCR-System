@@ -275,7 +275,7 @@ def my_ipcr(request):
         else:
             template_form = TemplateSelectionForm(user_type=user_type)
 
-    rows = ipcr.rows.all()
+    rows = ipcr.rows.all().order_by('kra__goal__category__order', 'kra__goal__order', 'kra__order')
     
     context = {
         'ipcr': ipcr,
@@ -388,4 +388,15 @@ def submit_target(request, ipcr_id):
     ipcr.status = 'Target Submitted'
     ipcr.save()
     messages.success(request, "Your targets have been submitted to your supervisor.")
+    return redirect('core:my_ipcr')
+
+@login_required
+def delete_ipcr_row(request, row_id):
+    row = get_object_or_404(IPCRRow, id=row_id, ipcr__employee=request.user.employee)
+    if row.ipcr.status not in ['Draft', 'Returned']:
+        messages.error(request, "You cannot delete targets after submission.")
+    else:
+        if request.method == 'POST':
+            row.delete()
+            messages.success(request, "Target deleted.")
     return redirect('core:my_ipcr')
