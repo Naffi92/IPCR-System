@@ -38,7 +38,13 @@
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <strong>{{ category.name }} ({{ category.default_weight }}%)</strong>
-                <a href="{% url 'core:edit_category' category.id %}" class="btn btn-sm btn-outline-light py-0">Edit</a>
+                <div>
+                    <a href="{% url 'core:edit_category' category.id %}" class="btn btn-sm btn-outline-light py-0">Edit</a>
+                    <form method="post" action="{% url 'core:delete_category' category.id %}" class="d-inline" onsubmit="return confirm('Delete category?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger py-0">X</button>
+                    </form>
+                </div>
             </div>
             <div class="card-body bg-light">
                 
@@ -53,7 +59,13 @@
                 <!-- Display Goals under this Category -->
                 {% for goal in category.goals.all %}
                 <div class="border rounded p-3 mb-3 bg-white">
-                    <h6 class="fw-bold text-primary">{{ goal.name }}</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold text-primary mb-0">{{ goal.name }}</h6>
+                        <form method="post" action="{% url 'core:delete_goal' goal.id %}" class="d-inline" onsubmit="return confirm('Delete this Goal and all its KRAs?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0">X Goal</button>
+                        </form>
+                    </div>
                     
                     <!-- Display KRAs under this Goal -->
                     <ul class="list-group mt-2 mb-2">

@@ -24,6 +24,7 @@ from .forms import (
     TemplateForm, TemplateCategoryForm, TemplateGoalForm, TemplateKRAForm, 
     TemplateColumnForm, TemplateColumnEditForm, TemplateSelectionForm, RatingPeriodForm
 )
+from django.urls import reverse
 
 # --- HOME & DASHBOARD ---
 @login_required
@@ -336,7 +337,7 @@ def add_ipcr_row(request):
                 
         IPCRRow.objects.create(ipcr=ipcr, kra=kra, dynamic_data=dynamic_data)
         messages.success(request, "Target added successfully.")
-        return redirect('core:my_ipcr')
+        return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
 
     categories = ipcr.template.categories.all().prefetch_related('goals__kras')
 
@@ -412,7 +413,7 @@ def delete_ipcr_row(request, row_id):
         if request.method == 'POST':
             row.delete()
             messages.success(request, "Target deleted.")
-    return redirect('core:my_ipcr')
+    return redirect(f"{reverse('core:my_ipcr')}?period={row.ipcr.rating_period.id}")
 
 @login_required
 def edit_ipcr_row(request, row_id):
@@ -421,7 +422,7 @@ def edit_ipcr_row(request, row_id):
     
     if ipcr.status not in ['Draft', 'Returned']:
         messages.error(request, "You cannot edit targets after submission.")
-        return redirect('core:my_ipcr')
+        return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
 
     all_columns = ipcr.template.columns.filter(phase_availability__in=['Target', 'Both']).order_by('order')
 
@@ -434,7 +435,7 @@ def edit_ipcr_row(request, row_id):
         row.dynamic_data = dynamic_data
         row.save()
         messages.success(request, "Target updated successfully.")
-        return redirect('core:my_ipcr')
+        return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
 
     context = {
         'ipcr': ipcr,
