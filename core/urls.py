@@ -51,5 +51,8 @@ urlpatterns = [
 
     path('my-ipcr/<int:ipcr_id>/submit/', views.submit_target, name='submit_target'),
     path('my-ipcr/row/<int:row_id>/delete/', views.delete_ipcr_row, name='delete_ipcr_row'),
-    
+
+    # Missing paths that caused the error
+    path('categories/<int:category_id>/edit/', views.edit_category, name='edit_category'),
+    path('my-ipcr/row/<int:row_id>/edit/', views.edit_ipcr_row, name='edit_ipcr_row'),
 ]

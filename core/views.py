@@ -82,6 +82,19 @@ def add_category(request, template_id):
     return redirect('core:template_detail', template_id=template.id)
 
 @role_required('HRMO')
+def edit_category(request, category_id):
+    category = get_object_or_404(TemplateCategory, id=category_id)
+    if request.method == 'POST':
+        form = TemplateCategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Category updated.")
+            return redirect('core:template_detail', template_id=category.template.id)
+    else:
+        form = TemplateCategoryForm(instance=category)
+    return render(request, 'core/simple_form.html', {'form': form, 'title': 'Edit Category', 'cancel_url': category.template.id})
+
+@role_required('HRMO')
 def delete_category(request, category_id):
     category = get_object_or_404(TemplateCategory, id=category_id)
     template_id = category.template.id
