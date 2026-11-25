@@ -7,9 +7,9 @@
     <a href="{% url 'core:template_dashboard' %}" class="btn btn-secondary">&larr; Back to Templates</a>
 </div>
 
-<div class="row">
+<div class="row align-items-start">
     <!-- LEFT SIDE: Categories, Goals, KRAs -->
-    <div class="col-xl-7 col-lg-7 mb-4">
+    <div class="col-lg-7 mb-4">
         <!-- Add Category Form -->
         <div class="card shadow-sm mb-4 border-primary">
             <div class="card-header bg-primary text-white">1. Add Category (Instruction, Research, GOALS, etc.)</div>
@@ -36,8 +36,9 @@
         <!-- Display Categories -->
         {% for category in categories %}
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-dark text-white d-flex justify-content-between">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                 <strong>{{ category.name }} ({{ category.default_weight }}%)</strong>
+                <a href="{% url 'core:edit_category' category.id %}" class="btn btn-sm btn-outline-light py-0">Edit</a>
             </div>
             <div class="card-body bg-light">
                 
@@ -57,9 +58,13 @@
                     <!-- Display KRAs under this Goal -->
                     <ul class="list-group mt-2 mb-2">
                         {% for kra in goal.kras.all %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ kra.name }}
-                        </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ kra.name }}
+                                <form method="post" action="{% url 'core:delete_kra' kra.id %}" class="d-inline" onsubmit="return confirm('Delete this KRA?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0">X</button>
+                                </form>
+                            </li>
                         {% endfor %}
                     </ul>
 
@@ -79,7 +84,7 @@
     </div>
 
     <!-- RIGHT SIDE: Form Columns -->
-    <div class="col-xl-5 col-lg-5">
+    <div class="col-lg-5">
         <div class="card shadow-sm">
             <div class="card-header bg-dark text-white">Form Columns (Fields)</div>
             <div class="card-body">

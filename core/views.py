@@ -400,3 +400,32 @@ def delete_ipcr_row(request, row_id):
             row.delete()
             messages.success(request, "Target deleted.")
     return redirect('core:my_ipcr')
+
+@login_required
+def edit_ipcr_row(request, row_id):
+    row = get_object_or_404(IPCRRow, id=row_id, ipcr__employee=request.user.employee)
+    ipcr = row.ipcr
+    
+    if ipcr.status not in ['Draft', 'Returned']:
+        messages.error(request, "You cannot edit targets after submission.")
+        return redirect('core:my_ipcr')
+
+    all_columns = ipcr.template.columns.filter(phase_availability__in=['Target', 'Both']).order_by('order')
+
+    if request.method == 'POST':
+        dynamic_data = row.dynamic_data
+        for col in all_columns:
+            val = request.POST.get(f'col_{col.id}')
+            if val:
+                dynamic_data[col.name] = val
+        row.dynamic_data = dynamic_data
+        row.save()
+        messages.success(request, "Target updated successfully.")
+        return redirect('core:my_ipcr')
+
+    context = {
+        'ipcr': ipcr,
+        'row': row,
+        'all_columns': all_columns,
+    }
+    return render(request, 'core/edit_ipcr_row.html', context)

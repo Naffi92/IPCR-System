@@ -72,52 +72,57 @@
                 <thead class="table-light text-center">
                     <tr>
                         <th width="5%">#</th>
-                        <th width="25%">KRA</th>
+                        <th width="25%">Target (MFO / Success Indicator)</th>
                         {% for col in ipcr.template.columns.all %}
                             {% if col.phase_availability in 'Target,Both' %}
                                 <th>{{ col.name }}</th>
                             {% endif %}
                         {% endfor %}
                         {% if ipcr.status == 'Draft' or ipcr.status == 'Returned' %}
-                            <th width="5%">Action</th>
+                            <th width="10%">Actions</th>
                         {% endif %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% regroup rows by kra.goal.category as category_list %}
-                    {% for category in category_list %}
-                        <!-- Category Header Row -->
+                    <!-- Nested loops to guarantee PDF-style grouping -->
+                    {% for category in ipcr.template.categories.all %}
                         <tr class="table-dark">
-                            <td colspan="100%"><strong>CATEGORY: {{ category.grouper.name }} ({{ category.grouper.default_weight }}%)</strong></td>
+                            <td colspan="100%"><strong>CATEGORY: {{ category.name }} ({{ category.default_weight }}%)</strong></td>
                         </tr>
-                        {% regroup category.list by kra.goal as goal_list %}
-                        {% for goal in goal_list %}
-                            <!-- Goal Header Row -->
+                        {% for goal in category.goals.all %}
                             <tr class="table-secondary">
-                                <td colspan="100%"><strong>Goal: {{ goal.grouper.name }}</strong></td>
+                                <td colspan="100%"><strong>Goal: {{ goal.name }}</strong></td>
                             </tr>
-                            {% for row in goal.list %}
-                            <tr>
-                                <td class="text-center">{{ forloop.counter }}</td>
-                                <td>{{ row.kra.name }}</td>
-                                {% for col in ipcr.template.columns.all %}
-                                    {% if col.phase_availability in 'Target,Both' %}
+                            {% for kra in goal.kras.all %}
+                                {% for row in rows %}
+                                    {% if row.kra.id == kra.id %}
+                                    <tr>
+                                        <td class="text-center">{{ forloop.counter }}</td>
                                         <td>
-                                            {% with val=row.dynamic_data|default_if_none:'' %}
-                                                {{ val|get_item:col.name|default:"-" }}
-                                            {% endwith %}
+                                            <strong>{{ kra.name }}</strong><br>
+                                            <small class="text-muted">Added: {{ row.created_at|date:"M d, Y H:i" }}</small>
                                         </td>
+                                        {% for col in ipcr.template.columns.all %}
+                                            {% if col.phase_availability in 'Target,Both' %}
+                                                <td>
+                                                    {% with val=row.dynamic_data|default_if_none:'' %}
+                                                        {{ val|get_item:col.name|default:"-" }}
+                                                    {% endwith %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if ipcr.status == 'Draft' or ipcr.status == 'Returned' %}
+                                            <td class="text-center">
+                                                <a href="{% url 'core:edit_ipcr_row' row.id %}" class="btn btn-sm btn-outline-primary py-0">Edit</a>
+                                                <form method="post" action="{% url 'core:delete_ipcr_row' row.id %}" class="d-inline" onsubmit="return confirm('Delete this target?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0">X</button>
+                                                </form>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
                                     {% endif %}
                                 {% endfor %}
-                                {% if ipcr.status == 'Draft' or ipcr.status == 'Returned' %}
-                                    <td class="text-center">
-                                        <form method="post" action="{% url 'core:delete_ipcr_row' row.id %}" class="d-inline" onsubmit="return confirm('Delete this target?');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0">X</button>
-                                        </form>
-                                    </td>
-                                {% endif %}
-                            </tr>
                             {% endfor %}
                         {% endfor %}
                     {% endfor %}

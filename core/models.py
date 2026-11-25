@@ -64,7 +64,7 @@ class Template(models.Model):
     evaluation_type = models.CharField(max_length=20, choices=EVALUATION_TYPES, default='Faculty') # <-- ADD THIS
     applicable_to = models.CharField(max_length=20, choices=[('Faculty', 'Faculty'), ('Staff', 'Staff')])
     staff_split_percentage = models.PositiveIntegerField(default=80, help_text="The percentage for MFOs (e.g., 80 for 80/20 split).")
-    
+
     def __str__(self):
         return f"{self.name} ({self.evaluation_type})"
 
@@ -183,6 +183,7 @@ class IPCRRow(models.Model):
     ipcr = models.ForeignKey(IPCR, on_delete=models.CASCADE, related_name='rows')
     kra = models.ForeignKey(TemplateKRA, on_delete=models.SET_NULL, null=True)
     dynamic_data = models.JSONField(default=dict) # Stores column values like {"MFO": "Train teachers", "Actual": "Trained 10"}
+    created_at = models.DateTimeField(default=timezone.now) # <-- ADD THIS
     
     # Ratings (Filled during Accomplishment Phase)
     q_rating = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)])
