@@ -396,21 +396,28 @@ def delete_template(request, template_id):
 @login_required
 def submit_target(request, ipcr_id):
     """Ratee submits their targets to the Rater."""
-    ipcr = get_object_or_404(IPCR, id=ipcr_id, employee=request.user.employee)
+    # 1. Define the employee object first!
+    try:
+        employee = request.user.employee
+    except ObjectDoesNotExist:
+        return redirect('core:home')
+
+    ipcr = get_object_or_404(IPCR, id=ipcr_id, employee=employee)
     
     if not ipcr.rows.exists():
         messages.error(request, "You cannot submit an empty IPCR.")
-        return redirect('core:my_ipcr')
+        return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
 
+    # 2. Now check the supervisor
     if not employee.supervisor:
         messages.error(request, "You do not have a supervisor assigned. Please contact HRMO.")
         return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
         
     ipcr.status = 'Target Submitted'
-    ipcr.target_approver = employee.supervisor # <-- ADD THIS LINE
+    ipcr.target_approver = employee.supervisor
     ipcr.save()
     messages.success(request, "Your targets have been submitted to your supervisor.")
-    return redirect('core:my_ipcr')
+    return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
 
 @login_required
 def delete_ipcr_row(request, row_id):

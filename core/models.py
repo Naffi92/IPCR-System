@@ -32,6 +32,7 @@ class Employee(models.Model):
     employee_id = models.CharField(max_length=30, unique=True)
     office = models.ForeignKey(Office, on_delete=models.SET_NULL, null=True, related_name='employees')
     position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, related_name='employees')
+    supervisor = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subordinates')
     e_signature = models.ImageField(upload_to='signatures/', null=True, blank=True)
     digital_hash = models.CharField(max_length=64, blank=True, null=True, help_text="Auto-generated SHA-256 hash")
 
