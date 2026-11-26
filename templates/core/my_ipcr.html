@@ -83,49 +83,53 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in rows %}
-                        {% ifchanged row.kra.goal.category.name %}
-                            <tr class="table-dark">
-                                <td colspan="100%"><strong>CATEGORY: {{ row.kra.goal.category.name }} ({{ row.kra.goal.category.default_weight }}%)</strong></td>
-                            </tr>
-                        {% endifchanged %}
-                        
-                        {% ifchanged row.kra.goal.name %}
-                            <tr class="table-secondary">
-                                <td colspan="100%"><strong>Goal: {{ row.kra.goal.name }}</strong></td>
-                            </tr>
-                        {% endifchanged %}
-                        
-                        {% ifchanged row.kra.name %}
-                            <tr class="table-info">
-                                <td colspan="100%"><strong>KRA: {{ row.kra.name }}</strong></td>
-                            </tr>
-                        {% endifchanged %}
-                        
-                        <tr>
-                            <td class="text-center">
-                                {{ forloop.counter }}<br>
-                                <small class="text-muted" style="font-size: 10px;">{{ row.created_at|date:"M d, H:i" }}</small>
-                            </td>
-                            {% for col in ipcr.template.columns.all %}
-                                {% if col.phase_availability in 'Target,Both' %}
-                                    <td>
-                                        {% with val=row.dynamic_data|default_if_none:'' %}
-                                            {{ val|get_item:col.name|default:"-" }}
-                                        {% endwith %}
-                                    </td>
-                                {% endif %}
-                            {% endfor %}
-                            {% if ipcr.status == 'Draft' or ipcr.status == 'Returned' %}
-                                <td class="text-center">
-                                    <a href="{% url 'core:edit_ipcr_row' row.id %}" class="btn btn-sm btn-outline-primary py-0">Edit</a>
-                                    <form method="post" action="{% url 'core:delete_ipcr_row' row.id %}" class="d-inline" onsubmit="return confirm('Delete?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0">X</button>
-                                    </form>
-                                </td>
-                            {% endif %}
+                    {% regroup rows by kra.goal.category as category_list %}
+                    {% for category in category_list %}
+                        <tr class="table-dark">
+                            <td colspan="100%"><strong>CATEGORY: {{ category.grouper.name }} ({{ category.grouper.default_weight }}%)</strong></td>
                         </tr>
+                        
+                        {% regroup category.list by kra.goal as goal_list %}
+                        {% for goal in goal_list %}
+                            <tr class="table-secondary">
+                                <td colspan="100%"><strong>Goal: {{ goal.grouper.name }}</strong></td>
+                            </tr>
+                            
+                            {% regroup goal.list by kra as kra_list %}
+                            {% for kra in kra_list %}
+                                <tr class="table-info">
+                                    <td colspan="100%"><strong>KRA: {{ kra.grouper.name }}</strong></td>
+                                </tr>
+                                
+                                {% for row in kra.list %}
+                                    <tr>
+                                        <td class="text-center">
+                                            <!-- This counter resets for every KRA! -->
+                                            {{ forloop.counter }}<br>
+                                            <small class="text-muted" style="font-size: 10px;">{{ row.created_at|date:"M d, H:i" }}</small>
+                                        </td>
+                                        {% for col in ipcr.template.columns.all %}
+                                            {% if col.phase_availability in 'Target,Both' %}
+                                                <td>
+                                                    {% with val=row.dynamic_data|default_if_none:'' %}
+                                                        {{ val|get_item:col.name|default:"-" }}
+                                                    {% endwith %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if ipcr.status == 'Draft' or ipcr.status == 'Returned' %}
+                                            <td class="text-center">
+                                                <a href="{% url 'core:edit_ipcr_row' row.id %}" class="btn btn-sm btn-outline-primary py-0">Edit</a>
+                                                <form method="post" action="{% url 'core:delete_ipcr_row' row.id %}" class="d-inline" onsubmit="return confirm('Delete?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0">X</button>
+                                                </form>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        {% endfor %}
                     {% endfor %}
                 </tbody>
             </table>

@@ -289,7 +289,12 @@ def my_ipcr(request):
         else:
             template_form = TemplateSelectionForm(user_type=user_type)
 
-    rows = ipcr.rows.all().order_by('kra__goal__category__order', 'kra__goal__order', 'kra__order')
+    # Sort strictly by Category, then Goal, then KRA (using ID as fallback)
+    rows = ipcr.rows.all().order_by(
+        'kra__goal__category__order', 'kra__goal__category__id',
+        'kra__goal__order', 'kra__goal__id',
+        'kra__order', 'kra__id'
+    )
     
     context = {
         'ipcr': ipcr,
