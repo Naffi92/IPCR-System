@@ -7,7 +7,7 @@
     <h2>My IPCR</h2>
     <div>
         {% if ipcr.template and is_target_phase and ipcr.status == 'Draft' %}
-            <a href="{% url 'core:add_ipcr_row' %}" class="btn btn-primary me-2">+ Add Target</a>
+            <a href="{% url 'core:add_ipcr_row' ipcr.id %}" class="btn btn-primary me-2">+ Add Target</a>
             <a href="{% url 'core:submit_target' ipcr.id %}" class="btn btn-success" onclick="return confirm('Are you sure? You cannot edit your targets after submitting.');">Submit Targets</a>
         {% endif %}
     </div>

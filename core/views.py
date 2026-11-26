@@ -309,20 +309,18 @@ def my_ipcr(request):
 
 
 @login_required
-def add_ipcr_row(request):
+def add_ipcr_row(request, ipcr_id):
     try:
         employee = request.user.employee
     except ObjectDoesNotExist:
         return redirect('core:home')
 
-    active_period = RatingPeriod.objects.filter(is_active=True).first()
-    
-    # THIS IS THE MISSING LINE THAT CAUSED THE ERROR
-    ipcr = get_object_or_404(IPCR, employee=employee, rating_period=active_period)
+    # Fetch the EXACT IPCR based on the ID passed in the URL
+    ipcr = get_object_or_404(IPCR, id=ipcr_id, employee=employee)
 
     if not ipcr.template:
         messages.error(request, "Please select a Template first.")
-        return redirect('core:my_ipcr')
+        return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
 
     all_columns = ipcr.template.columns.all().order_by('order')
 
@@ -330,7 +328,7 @@ def add_ipcr_row(request):
         kra_id = request.POST.get('kra_id')
         if not kra_id:
             messages.error(request, "You must select a KRA.")
-            return redirect('core:add_ipcr_row')
+            return redirect('core:add_ipcr_row', ipcr_id=ipcr.id)
             
         kra = get_object_or_404(TemplateKRA, id=kra_id)
         

@@ -42,7 +42,7 @@ urlpatterns = [
     path('templates/<int:template_id>/edit/', views.edit_template, name='edit_template'),
     path('templates/<int:template_id>/delete/', views.delete_template, name='delete_template'),
 
-    path('my-ipcr/add-row/', views.add_ipcr_row, name='add_ipcr_row'),
+        path('my-ipcr/<int:ipcr_id>/add-row/', views.add_ipcr_row, name='add_ipcr_row'),
 
         # Columns
     path('templates/<int:template_id>/add-column/', views.add_column, name='add_column'),
