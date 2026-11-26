@@ -401,8 +401,13 @@ def submit_target(request, ipcr_id):
     if not ipcr.rows.exists():
         messages.error(request, "You cannot submit an empty IPCR.")
         return redirect('core:my_ipcr')
+
+    if not employee.supervisor:
+        messages.error(request, "You do not have a supervisor assigned. Please contact HRMO.")
+        return redirect(f"{reverse('core:my_ipcr')}?period={ipcr.rating_period.id}")
         
     ipcr.status = 'Target Submitted'
+    ipcr.target_approver = employee.supervisor # <-- ADD THIS LINE
     ipcr.save()
     messages.success(request, "Your targets have been submitted to your supervisor.")
     return redirect('core:my_ipcr')
@@ -446,3 +451,65 @@ def edit_ipcr_row(request, row_id):
         'all_columns': all_columns,
     }
     return render(request, 'core/edit_ipcr_row.html', context)
+
+# --- RATER DASHBOARD & TARGET REVIEW ---
+
+@role_required('Rater', 'HRMO')
+def rater_dashboard(request):
+    """View for the Rater to see IPCRs submitted to them."""
+    try:
+        employee = request.user.employee
+    except ObjectDoesNotExist:
+        messages.error(request, "Your account is not linked to an Employee profile.")
+        return redirect('core:home')
+
+    # Get IPCRs where this user is the target_approver
+    pending_ipcrs = IPCR.objects.filter(
+        target_approver=employee, 
+        status__in=['Target Submitted']
+    ).order_by('-updated_at')
+    
+    # Get history of approved/returned ones
+    history_ipcrs = IPCR.objects.filter(
+        target_approver=employee, 
+        status__in=['Target Approved', 'Returned', 'Accomplishment Submitted', 'Final Approved']
+    ).order_by('-updated_at')
+
+    context = {
+        'pending_ipcrs': pending_ipcrs,
+        'history_ipcrs': history_ipcrs,
+    }
+    return render(request, 'core/rater_dashboard.html', context)
+
+
+@role_required('Rater', 'HRMO')
+def review_targets(request, ipcr_id):
+    """View for the Rater to approve or return the Ratee's targets."""
+    ipcr = get_object_or_404(IPCR, id=ipcr_id, target_approver=request.user.employee)
+    
+    if ipcr.status != 'Target Submitted':
+        messages.warning(request, "This IPCR is not pending target approval.")
+        return redirect('core:rater_dashboard')
+
+    rows = ipcr.rows.all().order_by(
+        'kra__goal__category__order', 'kra__goal__order', 'kra__order'
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'approve':
+            ipcr.status = 'Target Approved'
+            ipcr.save()
+            messages.success(request, f"Targets for {ipcr.employee.user.get_full_name()} approved. Accomplishment Phase is now open for them.")
+        elif action == 'return':
+            ipcr.status = 'Returned'
+            ipcr.save()
+            messages.warning(request, f"Targets for {ipcr.employee.user.get_full_name()} returned for revision.")
+        
+        return redirect('core:rater_dashboard')
+
+    context = {
+        'ipcr': ipcr,
+        'rows': rows,
+    }
+    return render(request, 'core/review_targets.html', context)

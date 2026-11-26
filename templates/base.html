@@ -29,8 +29,12 @@
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'core:home' %}">Home</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{% url 'core:my_ipcr' %}">My IPCR</a></li> <!-- Moved here -->
+                        <li class="nav-item"><a class="nav-link" href="{% url 'core:my_ipcr' %}">My IPCR</a></li>
                         
+                        {% if 'Rater' in user_groups or 'HRMO' in user_groups or user.is_superuser %}
+                            <li class="nav-item"><a class="nav-link" href="{% url 'core:rater_dashboard' %}">Rater Dashboard</a></li>
+                        {% endif %}
+
                         {% if user.is_superuser or 'HRMO' in user_groups %}
                             <li class="nav-item"><a class="nav-link" href="{% url 'core:template_dashboard' %}">Templates</a></li>
                             <li class="nav-item"><a class="nav-link" href="{% url 'core:rating_period_dashboard' %}">Rating Periods</a></li>

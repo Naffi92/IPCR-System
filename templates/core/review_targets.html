@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block title %}Review Targets{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Review Targets: {{ ipcr.employee.user.get_full_name|default:ipcr.employee.user.username }}</h2>
+    <a href="{% url 'core:rater_dashboard' %}" class="btn btn-secondary">&larr; Back to Dashboard</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <p><strong>Rating Period:</strong> {{ ipcr.rating_period.name }}</p>
+        <p><strong>Status:</strong> <span class="badge bg-primary">{{ ipcr.status }}</span></p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">Submitted Targets</div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-sm mb-0">
+            <thead class="table-light text-center">
+                <tr>
+                    <th width="5%">#</th>
+                    {% for col in ipcr.template.columns.all %}
+                        {% if col.phase_availability in 'Target,Both' %}
+                            <th>{{ col.name }}</th>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% regroup rows by kra.goal.category as category_list %}
+                {% for category in category_list %}
+                    <tr class="table-dark">
+                        <td colspan="100%"><strong>CATEGORY: {{ category.grouper.name }}</strong></td>
+                    </tr>
+                    {% regroup category.list by kra.goal as goal_list %}
+                    {% for goal in goal_list %}
+                        <tr class="table-secondary">
+                            <td colspan="100%"><strong>Goal: {{ goal.grouper.name }}</strong></td>
+                        </tr>
+                        {% regroup goal.list by kra as kra_list %}
+                        {% for kra in kra_list %}
+                            <tr class="table-info">
+                                <td colspan="100%"><strong>KRA: {{ kra.grouper.name }}</strong></td>
+                            </tr>
+                            {% for row in kra.list %}
+                                <tr>
+                                    <td class="text-center">{{ forloop.counter }}</td>
+                                    {% for col in ipcr.template.columns.all %}
+                                        {% if col.phase_availability in 'Target,Both' %}
+                                            <td>
+                                                {% with val=row.dynamic_data|default_if_none:'' %}
+                                                    {{ val|get_item:col.name|default:"-" }}
+                                                {% endwith %}
+                                            </td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body text-center">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="action" value="approve" class="btn btn-success btn-lg me-3" onclick="return confirm('Approve these targets? This will unlock the Accomplishment Phase for the employee.');">Approve Targets</button>
+            <button type="submit" name="action" value="return" class="btn btn-danger btn-lg" onclick="return confirm('Return these targets to the employee for revision?');">Return for Revision</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

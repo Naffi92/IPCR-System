@@ -55,4 +55,8 @@ urlpatterns = [
     # Missing paths that caused the error
     path('categories/<int:category_id>/edit/', views.edit_category, name='edit_category'),
     path('my-ipcr/row/<int:row_id>/edit/', views.edit_ipcr_row, name='edit_ipcr_row'),
+    # Rater URLs
+    path('rater/', views.rater_dashboard, name='rater_dashboard'),
+    path('rater/review/<int:ipcr_id>/', views.review_targets, name='review_targets'),
+
 ]
